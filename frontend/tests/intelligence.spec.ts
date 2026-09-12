@@ -17,6 +17,9 @@ async function seed(page: Page, request: APIRequestContext, invalid = false) {
     workspace: { current: { name: 'Browser DSS', request: current }, alternatives: [], scenario: 'BASE' },
   })), { kase, current })
   await page.goto('/')
+  // The overview now independently reads /api/intelligence for its explanation.
+  // Wait for that request before observing the manually triggered Lab request.
+  await expect(page.getByTestId('why-narrative')).toBeVisible({ timeout: 30_000 })
   await expect(panel(page).getByRole('button', { name: 'Найти допустимую корректировку' })).toBeEnabled({ timeout: 30_000 })
   return { current, search, result }
 }
@@ -62,11 +65,11 @@ test('research boundaries, no-solution, locks and Reset', async ({ page, request
 test('lot lock and mode lock send different contracts; STRESS filter', async ({ page, request }) => {
   await seed(page, request)
   await panel(page).getByText('Обязательные сервисы / locks', { exact: true }).click()
-  await panel(page).getByLabel('Lock FLOOD').selectOption('LOT')
+  await panel(page).getByLabel('Lock FLOOD', { exact: true }).selectOption('LOT')
   const lot = await run(page)
   expect(lot.locks).toEqual([{ lot_id: 'FLOOD', mode_id: null }])
   const response = page.waitForResponse(r => r.url().endsWith('/api/intelligence') && r.status() === 200)
-  await panel(page).getByLabel('Lock FLOOD').selectOption('A')
+  await panel(page).getByLabel('Lock FLOOD', { exact: true }).selectOption('A')
   const mode = await (await response).json()
   expect(mode.feasible_count).toBeLessThan(lot.feasible_count)
   await panel(page).getByLabel('Сценарий DSS').selectOption('STRESS')

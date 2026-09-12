@@ -25,7 +25,7 @@ try {
  await page.goto(url);
  await check('loading state',()=>expect(page.getByRole('heading',{name:'Загрузка кейса'})).toBeVisible());
  await load().waitFor({timeout:90000});
- await check('five navigation sections',async()=>{for(const name of ['Обзор','Конструктор','Сравнение','Стресс-сценарий','Реализация и материалы'])await expect(page.getByRole('navigation').getByRole('link',{name,exact:true})).toBeVisible();});
+ await check('five navigation sections',async()=>{for(const name of ['Обзор','Конструктор','Сравнение','STRESS своего состава','Реализация и материалы'])await expect(page.getByRole('navigation').getByRole('link',{name,exact:true})).toBeVisible();});
  await check('empty and incomplete states',async()=>{await expect(page.locator('#comparison .empty')).toBeVisible();await expect(page.locator('#stress')).toContainText('Сначала выберите четыре лота');});
  await screenshot('overview-laptop');
  await load().click();await waitCost();

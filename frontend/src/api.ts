@@ -22,8 +22,8 @@ export async function api<T>(path: string, body?: string | Blob, signal?: AbortS
   return data as T
 }
 
-export function download(text: string, name: string) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json;charset=utf-8' }))
+export function download(text: string, name: string, type = 'application/json;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([text], { type }))
   const link = document.createElement('a')
   link.href = url
   link.download = name

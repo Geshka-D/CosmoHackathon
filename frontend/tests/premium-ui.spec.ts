@@ -71,7 +71,8 @@ test.describe('Первый экран несёт решение', () => {
     if (stress.status === 'PASS') await expect(atlas(page).locator('.atlas-stress')).toContainText(ru(stress.c0_margin))
 
     // The claim is scoped, never "objectively optimal".
-    await expect(atlas(page)).toContainText('не единственный объективно оптимальный')
+    await expect(atlas(page)).toContainText('допустимых при текущих весах')
+    await expect(atlas(page)).not.toContainText('объективно оптимальный')
   })
 
   test('причины исключения раскрываются и предупреждают о пересечении', async ({ page, request }) => {
