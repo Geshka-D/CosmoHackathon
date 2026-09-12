@@ -224,16 +224,16 @@
       "sha256": "53bd4f2c5ae50ccebc420c7d11a913d5adfbc77ca2719f2633243bda18b8146c",
       "size": 8166
     },
-    "frontend/dist/assets/index-g8GGICMH.css": {
-      "sha256": "daa792e8bf11a9d49fa96e7f9167f80bfcc7e0181c7b27ef3f13fe3d548cfabd",
-      "size": 13563
+    "frontend/dist/assets/index-D9IA6Z6T.css": {
+      "sha256": "9454e5db75c6b0c4c2971b6b813d583bf1a0a0d71d9c1a7e7ddc26372602933e",
+      "size": 33777
     },
-    "frontend/dist/assets/index-xw0Sz-xb.js": {
-      "sha256": "79a848c6c64200c76013e86e28edb7f3f7a0da7bf075ee2f75e120eb85be8f8c",
-      "size": 301709
+    "frontend/dist/assets/index-DCEAAw3V.js": {
+      "sha256": "241ae1a0a8c41fb9e1e4e43dcd5c5b12318a4e206ab2abc07f1ac28c54ab03bf",
+      "size": 356792
     },
     "frontend/dist/index.html": {
-      "sha256": "e12ce7c502cc01ca729abb7b026b4b83bbde7715df505713af8b6b19eb42fd45",
+      "sha256": "19fdb0040601a778015b50eae887ce849b249300157ec1c4651ad270049a0bc2",
       "size": 529
     },
     "frontend/index.html": {
@@ -253,36 +253,60 @@
       "size": 414
     },
     "frontend/src/App.tsx": {
-      "sha256": "a7743546452b841a0affb9402a88100045cd31b22f53d3702e086752b9f4dd7e",
-      "size": 23370
+      "sha256": "ee00811e8475288f8e2d5a413a0feea2e75017e29b8e3148619518bbaf119964",
+      "size": 23215
     },
     "frontend/src/Comparison.tsx": {
       "sha256": "a5350b1183ee2a275baf3e5ed184d01784311a31aa3b0b8144b148de8150d95a",
       "size": 4778
     },
+    "frontend/src/ComparisonMatrix.tsx": {
+      "sha256": "b500675c6634584efd7b91ab892a0b37c0e67ee6f544b954235c30a92d20b8e9",
+      "size": 11536
+    },
+    "frontend/src/DecisionAtlas.tsx": {
+      "sha256": "e3d3e6e453744e14ab7c0521e932270c440b38f1aacca943e8aabac32b225843",
+      "size": 11661
+    },
     "frontend/src/DecisionPanel.tsx": {
-      "sha256": "d41cb1c2253b5e422e2c85f7e54c01d961539a26a4acbc9f232b04addeebc9de",
-      "size": 26994
+      "sha256": "7a1765efa40461f638f20fffe1a5b381e8045bc035159c99e95788ade0772502",
+      "size": 23695
     },
     "frontend/src/ImplementationPanel.tsx": {
       "sha256": "21c9e0bc0aa32ed4bd4f828a863977541392a56cfe714fffc4c9d37a99625974",
       "size": 23004
     },
+    "frontend/src/PreferencePanel.tsx": {
+      "sha256": "ff9813e2ca9b7b80e449511c89b32cb1d02d129de6374cbfbc1f57ba8ce8e995",
+      "size": 9849
+    },
     "frontend/src/README.md": {
-      "sha256": "6279593e795f1f9562257c4f0ab8e91dcfc32a71ba04cdf9d84112845c290189",
-      "size": 1356
+      "sha256": "49871606451117dc1c40b6a377ce156c160f3087887ef8bd2bad85811ccf284f",
+      "size": 4089
     },
     "frontend/src/ResultPanel.tsx": {
       "sha256": "ae6e7aae39b43f9f5cbdaa77e60779acd9c8793102858c58b479271a3aef7c2c",
       "size": 6784
     },
+    "frontend/src/ServiceMap.tsx": {
+      "sha256": "76e38aeb3c2245f87289ec7b148ad8923e2ed1e8b83dedf83e1666b6f5ac8deb",
+      "size": 8301
+    },
     "frontend/src/StressPanel.tsx": {
-      "sha256": "dd539d19ee071073a2fa3a5fea72d673cc4e197f49ba01782eb725096580a809",
-      "size": 3578
+      "sha256": "c7960091eea471ebc24bbe62525ce39872281164de1d8e7e53cf707e70defe96",
+      "size": 14763
+    },
+    "frontend/src/TradeoffPlot.tsx": {
+      "sha256": "34dcaf1f855a3468e003c375d9cc0d1324af30ac4ca0cbee79f971bd76fa7e71",
+      "size": 8078
     },
     "frontend/src/api.ts": {
       "sha256": "9227630185f8fd988c8de2d8c28e165c7bbb2625e1dc59c21091a00a47dffac2",
       "size": 1567
+    },
+    "frontend/src/decision.ts": {
+      "sha256": "a4c7bc66f3e5c0a34b87e27ba5b590333bd1d782e763f3687aa4a584873c6c19",
+      "size": 5529
     },
     "frontend/src/main.tsx": {
       "sha256": "449360d409ecbdd6aa7fb603226836ba7a6f3ed5cdcbb1a814397e7deb96a9bb",
@@ -293,16 +317,24 @@
       "size": 2287
     },
     "frontend/src/styles.css": {
-      "sha256": "f8d0ac5ebc93a4db4c9d40d3f747271ffc3d4a7ee4333d735851c73089e49308",
-      "size": 15934
+      "sha256": "0c281eb497641fe7d162b3a6383b5b47a882d4e96b5b837a8c34fcca642c1043",
+      "size": 39704
     },
     "frontend/src/types.ts": {
       "sha256": "620890247ceedd8cec78525c9c19831d45484910f8114d47e8227806e0261692",
       "size": 2438
     },
+    "frontend/src/useDecision.ts": {
+      "sha256": "4cde68807f6dd537e160f456e2892a336c511fbcce40fa8578883675ed553a7b",
+      "size": 9028
+    },
     "frontend/src/vite-env.d.ts": {
       "sha256": "65996936fbb042915f7b74a200fcdde7e410f32a669b1ab9597cfaa4b0faddb5",
       "size": 38
+    },
+    "frontend/tests/premium-ui.spec.ts": {
+      "sha256": "e0f0f8446e16036116828a463ea4019bb6392b26c3e78936134d1a6eee32a4a6",
+      "size": 25834
     },
     "frontend/tsconfig.json": {
       "sha256": "e98c67afa43da15251239b97428fd5bfbb92b50370efc05f3e781b41871b5cf2",
@@ -525,8 +557,8 @@
       "size": 5259
     },
     "scripts/build_delivery.py": {
-      "sha256": "f6eb07e96d65d367fcf42932c2daf03a90a51cc416b7d721424128e44cda972c",
-      "size": 5889
+      "sha256": "b77a3061657c6baf0d78f92be6569274df6ba5b21cdc12e7baa54fe73eea7cd9",
+      "size": 5939
     },
     "scripts/build_management.py": {
       "sha256": "690abb56cc86bf84e5c4f0dfa6922b1cd5c0fbcb02a0ee5ea9379d5de01f6393",

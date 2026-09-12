@@ -3,8 +3,11 @@ import { api, download } from './api'
 import { Comparison } from './Comparison'
 import { ResultPanel } from './ResultPanel'
 import { DecisionPanel } from './DecisionPanel'
+import { DecisionAtlas } from './DecisionAtlas'
 import { ImplementationPanel } from './ImplementationPanel'
 import { StressPanel } from './StressPanel'
+import { useDecision } from './useDecision'
+import { portfolioId } from './decision'
 import { format, lotNames, metricNames } from './presentation'
 import type { Catalog, Envelope, ModeId, Selection, Workspace } from './types'
 
@@ -36,6 +39,8 @@ export default function App() {
   const upload = useRef<HTMLInputElement>(null)
   const serialized = catalog && workspace ? JSON.stringify(makeEnvelope(catalog, workspace)) : ''
   const computed = response?.key === serialized ? response.value.computed : undefined
+  const decision = useDecision(catalog)
+  const appliedId = workspace && workspace.current.request.selection.length === 4 ? portfolioId(workspace.current.request.selection) : null
 
   function persist(value: Envelope) {
     try {
@@ -137,6 +142,12 @@ export default function App() {
     change({ ...workspace, current: { ...workspace.current, request: { ...workspace.current.request, selection: rows } } })
   }
 
+  function load(name: string, request: Workspace['current']['request']) {
+    if (!workspace) return
+    change({ ...workspace, current: { name, request: structuredClone(request) } })
+    document.getElementById('builder')?.scrollIntoView({ block: 'start' })
+  }
+
   async function importFile(file: File) {
     if (!catalog || !workspace) return
     if (file.size > MAX_BYTES) {
@@ -191,17 +202,28 @@ export default function App() {
 
   const addReason = !workspace ? '' : workspace.current.request.selection.length !== 4 ? 'Нужны четыре лота.'
     : workspace.alternatives.length >= 3 ? 'Уже сохранены три варианта. Удалите один, чтобы добавить новый.'
-    : workspace.alternatives.some(item => signature(item.request.selection) === signature(workspace.current.request.selection)) ? 'Такой состав и режимы уже сохранены.'
-    : workspace.alternatives.some(item => item.name.trim().toLocaleLowerCase() === workspace.current.name.trim().toLocaleLowerCase()) ? 'Задайте другое название варианта.'
-    : !workspace.current.name.trim() ? 'Введите название варианта.' : ''
+      : workspace.alternatives.some(item => signature(item.request.selection) === signature(workspace.current.request.selection)) ? 'Такой состав и режимы уже сохранены.'
+        : workspace.alternatives.some(item => item.name.trim().toLocaleLowerCase() === workspace.current.name.trim().toLocaleLowerCase()) ? 'Задайте другое название варианта.'
+          : !workspace.current.name.trim() ? 'Введите название варианта.' : ''
 
   return <>
-    <a className="skip-link" href="#builder">Перейти к конструктору</a>
-    <header className="masthead"><div className="brand-mark" aria-hidden="true">◉</div><div><p>КОСМОС КАК ИНФРАСТРУКТУРА</p><h1>Портфель космических сервисов</h1></div><span className="edition">Кейс v1.1 · локальный расчёт</span></header>
-    <nav aria-label="Разделы"><a href="#overview">Обзор</a><a href="#builder">Конструктор</a><a href="#comparison">Сравнение</a><a href="#stress">Стресс-сценарий</a><a href="#implementation">Реализация и материалы</a></nav>
+    <a className="skip-link" href="#overview">Перейти к решению</a>
+    <header className="masthead">
+      <div className="masthead-block">
+        <p>Космос как инфраструктура</p>
+        <h1>Портфель космических сервисов</h1>
+      </div>
+      <p className="masthead-story">потребность → пользователь → сервис → действие → плановый эффект → общественная ценность → кто платит → почему этот портфель → STRESS</p>
+      <span className="edition">Кейс v1.1 · локальный расчёт</span>
+    </header>
+    <nav aria-label="Разделы">
+      <a href="#overview">Обзор</a><a href="#decision">Поиск и выбор</a><a href="#stress">Стресс-сценарий</a>
+      <a href="#builder">Конструктор</a><a href="#comparison">Сравнение</a><a href="#implementation">Реализация и материалы</a>
+    </nav>
     <main>
-      <section id="overview" className="intro overview" aria-labelledby="overview-title"><p className="eyebrow">Решение для межрегионального заказчика</p><h2 id="overview-title">Четыре сервиса. Один проверяемый портфель.</h2><p>Соберите состав, сравните общественный результат и денежное покрытие, проверьте запас при сокращении бюджета.</p><div className="overview-path"><a href="#builder">Собрать свой вариант</a><a href="#decision">Найти и сравнить допустимые</a><a href="#implementation">Открыть сохранённое решение и PDF</a></div><p className="muted">Расчёт использует сохранённые синтетические данные кейса. Управленческие материалы относятся к своему сохранённому составу; изменение конструктора не подменяет их выводы. <a href="#catalog">Исходные данные и коэффициенты</a></p></section>
       {!workspace || !catalog ? <section className="panel"><h2>Загрузка кейса</h2>{error ? <div role="alert" className="error"><p>{error}</p><button onClick={() => setBoot(value => value + 1)}>Повторить загрузку</button></div> : <p role="status">Проверяем локальные источники и сохранённые настройки…</p>}</section> : <>
+        <DecisionAtlas decision={decision} catalog={catalog} appliedId={appliedId} />
+
         <section className="toolbar panel" aria-label="Сохранение и восстановление">
           <div><b>Настройки портфеля</b><p className="muted" role="status">{storageMessage || 'Изменения сохраняются в этом браузере после успешного пересчёта.'}</p>{rejectedStorage.current !== undefined && <button className="quiet" onClick={() => download(rejectedStorage.current!, 'kosmos-storage-backup.json')}>Скачать прежнюю запись</button>}</div>
           <div className="actions"><button disabled={busy || !computed} onClick={() => void exportFile()}>Скачать JSON</button><button disabled={busy} onClick={() => upload.current?.click()}>Импорт JSON</button>
@@ -212,8 +234,16 @@ export default function App() {
         {notice && <p className="notice" role="status">{notice}</p>}
         {busy && <p className="notice" role="status">Проверяем файл и пересчитываем настройки…</p>}
         {error && <div className="error" role="alert"><b>Расчёт не подтверждён</b><p>{error}</p><button onClick={() => { revision.current += 1; setError(''); setResponse(undefined); setRetry(value => value + 1) }}>Пересчитать текущие настройки</button></div>}
+
+        <DecisionPanel catalog={catalog} currentRequest={workspace.current.request} appliedId={appliedId} decision={decision} onLoad={load} />
+
+        <StressPanel result={computed?.current} pending={!computed && !error} onApply={() => change({ ...workspace, scenario: 'STRESS' })}
+          disabled={busy || !computed} decision={decision} currentRequest={workspace.current.request}
+          currentName={workspace.current.name} onLoad={load} />
+
         <section id="builder" className="panel">
           <div className="section-heading"><div><p className="eyebrow">Четыре позиции · восемь лотов</p><h2>Конструктор портфеля</h2></div><span>{workspace.current.request.selection.length} / 4</span></div>
+          <p className="muted">Ручная сборка любого состава: применённый здесь портфель считается отдельно от рекомендации и отмечается в сравнении.</p>
           <label className="name-field">Название текущего варианта<input maxLength={80} value={workspace.current.name} disabled={busy} onChange={event => change({ ...workspace, current: { ...workspace.current, name: event.target.value } })} aria-invalid={!workspace.current.name.trim()} /></label>
           {!workspace.current.name.trim() && <p className="field-error">Введите название, чтобы сохранить и сравнить вариант.</p>}
           <div className="slots">{[0, 1, 2, 3].map(index => {
@@ -238,10 +268,8 @@ export default function App() {
         <section className="panel results" aria-label="Результаты расчёта" aria-busy={!computed && !error}>
           {computed ? <ResultPanel result={computed.current} scenario={workspace.scenario} /> : <><h2>Цена и ограничения</h2><p role="status">{error ? 'Результаты скрыты до успешного пересчёта текущих настроек.' : busy ? 'Ожидаем завершения операции с JSON…' : 'Пересчитываем текущий ввод на сервере…'}</p></>}
         </section>
-        <StressPanel result={computed?.current} pending={!computed && !error} onApply={() => change({ ...workspace, scenario: 'STRESS' })} disabled={busy || !computed} />
-        <Comparison workspace={workspace} computed={computed} onLoad={index => { const item = workspace.alternatives[index]; change({ ...workspace, current: { name: item.name, request: structuredClone(item.request) } }); document.getElementById('builder')?.scrollIntoView() }} onRemove={index => change({ ...workspace, alternatives: workspace.alternatives.filter((_, i) => i !== index) })} />
-        <DecisionPanel catalog={catalog} currentRequest={workspace.current.request} onLoad={(name, request) => { change({ ...workspace, current: { name, request: structuredClone(request) } }); document.getElementById('builder')?.scrollIntoView() }} />
-        <ImplementationPanel currentRequest={workspace.current.request} onLoad={(name, request) => { change({ ...workspace, current: { name, request: structuredClone(request) } }); document.getElementById('builder')?.scrollIntoView() }} />
+        <Comparison workspace={workspace} computed={computed} onLoad={index => { const item = workspace.alternatives[index]; load(item.name, item.request) }} onRemove={index => change({ ...workspace, alternatives: workspace.alternatives.filter((_, i) => i !== index) })} />
+        <ImplementationPanel currentRequest={workspace.current.request} onLoad={load} />
         <section id="catalog" className="panel">
           <p className="eyebrow">Сохранённая версия источника</p><h2>Каталог и коэффициенты</h2><p>Восемь реальных лотов из lots.csv. Исходные значения и официальные пороги доступны только для чтения. Русские краткие подписи — перевод названий для интерфейса.</p>
           <div className="table-scroll" tabIndex={0} role="region" aria-label="Каталог восьми лотов"><table><thead><tr><th>Лот / сервис</th><th>Архетип / группы</th><th>C0<small>млн руб.</small></th><th>OPEX<small>млн руб./год</small></th><th>VPUB<small>синтет. млн руб./год</small></th><th>Якорный / коммерческий CASH<small>млн руб./год</small></th><th>Индексы</th></tr></thead>

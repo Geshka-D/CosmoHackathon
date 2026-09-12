@@ -45,6 +45,7 @@ def build(destination: Path):
              'scripts/reproduce.py','scripts/build_management.py','scripts/build_submission.py',
              'scripts/build_delivery.py','scripts/verify_delivery.py',
              'tests/m3_independent.py','tests/m3_browser_run.py','tests/m6_browser.mjs',
+             'frontend/tests/premium-ui.spec.ts',
              'results/m3_decision.json'}
     for tree in ['backend','config','case_source','assets/fonts','frontend/src','frontend/dist','docs','packaging']:
         for folder, dirs, files in os.walk(ROOT/tree):
