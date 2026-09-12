@@ -5,6 +5,7 @@ import { ResultPanel } from './ResultPanel'
 import { DecisionPanel } from './DecisionPanel'
 import { ImplementationPanel } from './ImplementationPanel'
 import { StressPanel } from './StressPanel'
+import { AnalysisPanel } from './AnalysisPanel'
 import { format, lotNames, metricNames } from './presentation'
 import type { Catalog, Envelope, ModeId, Selection, Workspace } from './types'
 
@@ -14,7 +15,7 @@ const MAX_BYTES = 65_536
 const makeEnvelope = (catalog: Catalog, workspace: Workspace): Envelope => ({ format_version: FORMAT, source_hashes: catalog.source_hashes, workspace })
 const blank = (catalog: Catalog): Workspace => ({
   current: { name: 'Мой портфель', request: { schema_version: catalog.schema_version, case_id: catalog.case_id, case_version: catalog.case_version, selection: [] } },
-  alternatives: [], scenario: 'BASE',
+  alternatives: [], scenario: 'BASE', team_settings: structuredClone(catalog.team_defaults),
 })
 const signature = (rows: Selection[]) => rows.map(row => `${row.lot_id}:${row.mode_id}`).sort().join('|')
 
@@ -198,7 +199,7 @@ export default function App() {
   return <>
     <a className="skip-link" href="#builder">Перейти к конструктору</a>
     <header className="masthead"><div className="brand-mark" aria-hidden="true">◉</div><div><p>КОСМОС КАК ИНФРАСТРУКТУРА</p><h1>Портфель космических сервисов</h1></div><span className="edition">Кейс v1.1 · локальный расчёт</span></header>
-    <nav aria-label="Разделы"><a href="#overview">Обзор</a><a href="#builder">Конструктор</a><a href="#comparison">Сравнение</a><a href="#stress">Стресс-сценарий</a><a href="#implementation">Реализация и материалы</a></nav>
+    <nav aria-label="Разделы"><a href="#overview">Обзор</a><a href="#builder">Конструктор</a><a href="#comparison">Сравнение</a><a href="#stress">Стресс-сценарий</a><a href="#analysis">Показатели команды</a><a href="#implementation">Реализация и материалы</a></nav>
     <main>
       <section id="overview" className="intro overview" aria-labelledby="overview-title"><p className="eyebrow">Решение для межрегионального заказчика</p><h2 id="overview-title">Четыре сервиса. Один проверяемый портфель.</h2><p>Соберите состав, сравните общественный результат и денежное покрытие, проверьте запас при сокращении бюджета.</p><div className="overview-path"><a href="#builder">Собрать свой вариант</a><a href="#decision">Найти и сравнить допустимые</a><a href="#implementation">Открыть сохранённое решение и PDF</a></div><p className="muted">Расчёт использует сохранённые синтетические данные кейса. Управленческие материалы относятся к своему сохранённому составу; изменение конструктора не подменяет их выводы. <a href="#catalog">Исходные данные и коэффициенты</a></p></section>
       {!workspace || !catalog ? <section className="panel"><h2>Загрузка кейса</h2>{error ? <div role="alert" className="error"><p>{error}</p><button onClick={() => setBoot(value => value + 1)}>Повторить загрузку</button></div> : <p role="status">Проверяем локальные источники и сохранённые настройки…</p>}</section> : <>
@@ -238,7 +239,12 @@ export default function App() {
         <section className="panel results" aria-label="Результаты расчёта" aria-busy={!computed && !error}>
           {computed ? <ResultPanel result={computed.current} scenario={workspace.scenario} /> : <><h2>Цена и ограничения</h2><p role="status">{error ? 'Результаты скрыты до успешного пересчёта текущих настроек.' : busy ? 'Ожидаем завершения операции с JSON…' : 'Пересчитываем текущий ввод на сервере…'}</p></>}
         </section>
-        <StressPanel result={computed?.current} pending={!computed && !error} onApply={() => change({ ...workspace, scenario: 'STRESS' })} disabled={busy || !computed} />
+        <StressPanel catalog={catalog} workspace={workspace} result={computed?.current} pending={!computed && !error}
+          onSettings={team_settings => change({ ...workspace, team_settings })}
+          onApplyScenario={() => change({ ...workspace, scenario: 'STRESS' })}
+          onLoad={(name, request) => { change({ ...workspace, current: { name, request: structuredClone(request) }, scenario: 'STRESS' }); document.getElementById('builder')?.scrollIntoView() }}
+          disabled={busy || !computed} />
+        <AnalysisPanel settings={workspace.team_settings || catalog.team_defaults} />
         <Comparison workspace={workspace} computed={computed} onLoad={index => { const item = workspace.alternatives[index]; change({ ...workspace, current: { name: item.name, request: structuredClone(item.request) } }); document.getElementById('builder')?.scrollIntoView() }} onRemove={index => change({ ...workspace, alternatives: workspace.alternatives.filter((_, i) => i !== index) })} />
         <DecisionPanel catalog={catalog} currentRequest={workspace.current.request} onLoad={(name, request) => { change({ ...workspace, current: { name, request: structuredClone(request) } }); document.getElementById('builder')?.scrollIntoView() }} />
         <ImplementationPanel currentRequest={workspace.current.request} onLoad={(name, request) => { change({ ...workspace, current: { name, request: structuredClone(request) } }); document.getElementById('builder')?.scrollIntoView() }} />

@@ -14,6 +14,8 @@ from backend.app.contracts import MAX_BODY_BYTES, ServiceError, canonical_json, 
 from backend.app.search import search
 from backend.app.sensitivity import sensitivity
 from backend.app.decision import recompute_decision
+from backend.app.advanced_analysis import build_advanced_bundle
+from backend.app.case_loader import CaseRepository
 
 
 def main() -> int:
@@ -24,6 +26,7 @@ def main() -> int:
     kind.add_argument("--search", action="store_true", help="Read a kosmos-search/1 request")
     kind.add_argument("--sensitivity", action="store_true", help="Rerank four weight perturbations and equal weights")
     kind.add_argument("--decision", action="store_true", help="Recompute a kosmos-decision/1 configuration")
+    kind.add_argument("--advanced", action="store_true", help="Recompute all configured team indicators over the canonical population")
     parser.add_argument("--output", type=Path, help="Create a NEW result JSON file; existing files are never overwritten")
     args = parser.parse_args()
     try:
@@ -34,7 +37,7 @@ def main() -> int:
                 data = stream.read(MAX_BODY_BYTES + 1)
         value = parse_json(data)
         handler = recompute_decision if args.decision else sensitivity if args.sensitivity else search if args.search else compare if args.compare else evaluate
-        result = handler(value)
+        result = build_advanced_bundle(CaseRepository().load()) if args.advanced else handler(value)
         output = canonical_json(result)
         if args.output:
             with args.output.open("xb") as stream:

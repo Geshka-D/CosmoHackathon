@@ -5,7 +5,7 @@ ROOT=pathlib.Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 import uvicorn
 from backend.app.main import app, create_app
 from backend.app.case_loader import CaseRepository
-p=argparse.ArgumentParser();p.add_argument('--oracle',required=True);p.add_argument('--output',required=True);p.add_argument('--browser-script',default='tests/m3_browser.mjs');p.add_argument('--fixture');a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--oracle',required=True);p.add_argument('--output',required=True);p.add_argument('--browser-script',default='tests/m6_browser.mjs');p.add_argument('--fixture');a=p.parse_args()
 output=pathlib.Path(a.output).resolve();output.mkdir(parents=True,exist_ok=False)
 s=socket.socket();s.bind(('127.0.0.1',0));port=s.getsockname()[1]
 server=uvicorn.Server(uvicorn.Config(create_app(CaseRepository(pathlib.Path(a.fixture))) if a.fixture else app,host='127.0.0.1',port=port,log_level='info'))

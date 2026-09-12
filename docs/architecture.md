@@ -48,3 +48,11 @@ Browser state содержит независимые снимки альтер�
 `DecisionPanel.tsx` — отдельный раздел и configuration-only storage/import. Python считает все метрики, нормированные веса, score и deltas; React показывает форматированные значения. Revision, cleanup, abort и serialized-input key закрывают устаревшие ответы при weight/scenario/baseline/import; снимок ручного baseline меняется только явным действием. API/CLI используют одни функции. M2 Workspace, compare/evaluate, ручные ограничения и три альтернативы сохранены.
 
 Активные входы/результаты: `config/m3_decision.json` → `scripts/reproduce.py --decision` → `results/m3_decision.json`. Ни ZIP, ни CONTROL, ни historical evidence не нужны runtime. Сборка frontend остаётся статикой одного Python-сервера. Ни внешних сервисов, ни дополнительной инфраструктуры не введено.
+
+## Дополнение «Волна 1»
+
+`assumptions.json A16-A26 → TeamSettings → canonical_adapter → constraints/reliability → portfolio_analysis` сохраняет канонические значения и добавляет только явно маркированные показатели команды. `search.get_population()` остаётся единственным полным пространством для `stress_response`, `repair` и `advanced_analysis`; результаты кэшируются по identity популяции и параметрам.
+
+`management.build_management()` собирает один bundle с финансами, альтернативами, расширенной аналитикой и коалицией. `submission_content.documents()` читает именно этот bundle; `submission_pdf` рисует нативные таблицы, полосы и линии. UI, CSV, записка, стресс-лист и слайды поэтому не имеют независимых числовых констант.
+
+Новые API: option применяет объявленный план и возвращает результат через тот же адаптер; coalition заново считает выбранный состав; shadow/frontier работают по проверенному snapshot. React редактирует все A16-A22 без изменения кода и хранит их вместе с workspace. `case_source/` по-прежнему только читается и проверяется SHA-256.

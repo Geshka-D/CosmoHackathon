@@ -44,7 +44,7 @@
 | `units`, `period`, `assumption_refs` | Единицы, старт + год эксплуатации, ссылки на неизменённые assumptions |
 | `provenance.aggregates` | Формулы, значения, вклад выбранных строк и ссылка на функцию источника |
 
-Детали provenance указывают source file, row_key, field/value, coefficient/value, формулу и единицы. У индексов нет модификатора режима. CASH из core не заменяется суммой агрегированных компонентов: последняя может отличаться последним битом float из-за порядка операций. Никакого округления до проверок. VPUB — синтетическая общественная ценность, отдельно от CASH; KCASH — CASH/OPEX, не прибыльность; t_rep — заданный безразмерный индекс без придуманной расшифровки.
+Детали provenance указывают source file, row_key, field/value, coefficient/value, формулу и единицы. У индексов нет модификатора режима. CASH из core не заменяется суммой агрегированных компонентов: последняя может отличаться последним битом float из-за порядка операций. Никакого округления до проверок. VPUB — синтетическая общественная ценность, отдельно от CASH; KCASH — CASH/OPEX; t_rep — заданный безразмерный индекс без придуманной расшифровки.
 
 Сценарии используют одни metrics/detail. STRESS изменяет только C0_max: 1300→1180; у приведённого примера C0=1297, запас BASE=3, STRESS=-117. Диагностика имеет `id`, условие, metric, comparator, limit, fact, unit, status/ok, evaluated, margin, deficit, violation_direction, eps, tolerance_accepted, action, limit_source и formula_source.
 
@@ -118,6 +118,17 @@ LocalStorage хранит только этот configuration-only конвер�
 Все асинхронные пути используют ревизию входа; effect cleanup отменяет запросы, а результат дополнительно связывается с сериализованным входом. Edit/reset/load/import/restore/comparison не могут подставить ответ прежнего запроса в новый состав. Во время ожидания результаты скрыты. BASE/STRESS имеют один состав/стоимость и разные официальные бюджетные проверки.
 
 Production-статика монтируется после /api routes и только из frontend/dist, если сборка существует при запуске Python. Корень проекта/источники/отчёты не публикуются. Vite development proxy обращается только к локальному Python 8000. В браузере нет второго расчётного ядра или внешних сервисов.
+
+## Дополнение «Волна 1»: параметры команды и аналитические endpoint
+
+`GET /api/case` дополнительно возвращает `team_defaults`, `team_presets` и `team_setting_provenance`. Workspace принимает `team_settings`: `optimism_uplift` 0–2, `sigma` 0–1, `rho` 0–1, `confidence` строго между 0,5 и 1, `alpha` 0–1, `phi` 0–1 и непустой `stress_plan`. Все модели strict/extra-forbid; результат показывает применённые значения.
+
+- `POST /api/option/exercise` принимает `kosmos-option/1`, source hashes, обычный EvaluateRequest, stress plan и необязательные team settings. Действия обязаны ссылаться на выбранный лот и фактический `from`; `after` — обычный ResultBundle, повторно рассчитанный каноническим адаптером.
+- `POST /api/coalition` принимает `kosmos-coalition/1`, source hashes, полный EvaluateRequest и необязательный `phi`. Возвращает характеристическую функцию, доли Шепли, 14 проверок ядра, простые правила и чувствительность.
+- `GET /api/shadow-prices?scenario=BASE|STRESS` возвращает девять конечных экспериментов над сохранённой популяцией.
+- `GET /api/frontier` принимает необязательные числовые параметры команды и возвращает лестницу надбавки, обе кривые, региональные частоты, классификацию стресс-ответа и надёжную популяцию.
+
+ResultBundle дополнен `team_analysis`: применённые настройки/происхождение, H, effective lots, стандартное отклонение, вероятность, резерв и статус надёжности по двум сценариям; для полного портфеля также торнадо, тип стресс-ответа и ближайший ремонт. Канонические `metrics`, `detail`, `provenance` и исходные `c0_mrub` не изменяются.
 
 M2: через Context7 прочитаны первичные [React useEffect cleanup](https://github.com/reactjs/react.dev/blob/main/src/content/learn/synchronizing-with-effects.md), [Vite React/TypeScript template](https://github.com/vitejs/vite/blob/main/packages/create-vite/template-react-ts/vite.config.ts), [Playwright library lifecycle](https://github.com/microsoft/playwright/blob/main/docs/src/library-js.md). Фактические версии закреплены package.json/package-lock.json; инструкции навыков frontend-design/Context7 применены в пределах локального пользовательского плана.
 # M3: отдельный decision-контракт поверх сохранённых M1/M2

@@ -27,7 +27,7 @@ export function ResultPanel({ result, scenario }: { result: Result; scenario: Sc
       </article>)}
     </div>
     <div className="financial-note">
-      <p><b>CASH:</b> якорный {format(result.metrics.anchor_cash_mrub_per_year)} + коммерческий {format(result.metrics.commercial_cash_mrub_per_year)} млн руб./год. KCASH — отношение сумм CASH/OPEX, не прибыльность.</p>
+      <p><b>CASH:</b> якорный {format(result.metrics.anchor_cash_mrub_per_year)} + коммерческий {format(result.metrics.commercial_cash_mrub_per_year)} млн руб./год. KCASH — только отношение сумм CASH/OPEX.</p>
       <p><b>VPUB:</b> отдельная синтетическая общественная ценность; она не оплачивает OPEX и не складывается с CASH.</p>
     </div>
     <div className={`budget-strip ${budget.ok === false ? 'over-budget' : ''}`} data-testid="budget-strip">
@@ -35,6 +35,8 @@ export function ResultPanel({ result, scenario }: { result: Result; scenario: Sc
       <span className="budget-divider" aria-hidden="true">/</span>
       <div><span>Лимит {scenario}</span><strong>{format(budget.limit)} <small>млн руб.</small></strong></div>
       <div><span>{complete ? 'Запас (+) / превышение (−)' : 'Промежуточная разница с лимитом'}</span><strong>{signed(budget.margin)} <small>млн руб.</small></strong></div>
+      <div><span>Вероятность соответствия</span><strong>{format((budget.probability ?? 0) * 100, 1)} <small>%</small></strong></div>
+      <div><span>Выводимый целевой резерв</span><strong>{format(budget.target_reserve_mrub)} <small>млн руб.</small></strong></div>
       <p>BASE → STRESS меняет лимит. Стоимость того же состава остаётся прежней.</p>
     </div>
     <div className="section-heading"><h3>Девять условий · {scenario}</h3><span>Решения до округления · допуск до 10⁻⁹</span></div>
@@ -51,7 +53,9 @@ export function ResultPanel({ result, scenario }: { result: Result; scenario: Sc
       </table>
     </div>
     <div className="index-grid">{indexMetrics.map(key => <div key={key}><span>{metricNames[key]}</span><strong>{format(result.metrics[key], 6)}</strong><small>{result.units[key]} · среднее по выбранным лотам</small></div>)}</div>
-    <p className="muted">Расшифровка t_rep в кейсе не задана. Это безразмерный индекс, не срок окупаемости. Смена A/B/C не меняет исходные индексы.</p>
+    <p className="muted">Расшифровка t_rep в кейсе не задана. Это безразмерный индекс; смена A/B/C не меняет исходные индексы.</p>
+    {!!result.team_analysis.risk_tornado?.length && <><div className="section-heading"><h3>Критические сдвиги · показатель команды</h3><span>Меньший абсолютный запас — более близкая граница</span></div><div className="tornado">{result.team_analysis.risk_tornado.map(row => <div key={row.id}><span>{row.risk}</span><i style={{ width: `${Math.min(Math.abs(row.critical_change_fraction) * 220, 100)}%` }}/><b>{signed(row.critical_change_fraction * 100)} %</b></div>)}</div></>}
+    {result.team_analysis.nearest_repairs?.[scenario]?.available && <div className="access-note"><b>Ближайший допустимый вариант</b><p>Минимум изменений: {result.team_analysis.nearest_repairs[scenario]!.minimum_distance}; одним изменением: {result.team_analysis.nearest_repairs[scenario]!.one_change_available ? 'доступен' : 'не найден'}; изменение VPUB: {signed(-(result.team_analysis.nearest_repairs[scenario]!.best?.vpub_loss_mrub_per_year || 0))} млн руб./год.</p><p><code>{result.team_analysis.nearest_repairs[scenario]!.best?.candidate.portfolio_id}</code></p></div>}
     <details className="disclosure"><summary>Вклад каждого лота и происхождение расчёта</summary>
       <p>{result.period}</p>
       {result.detail.map(row => <details className="lot-detail" key={row.lot_id}><summary>{row.lot_id} · {lotNames[row.lot_id]} · режим {row.mode_id} · {row.public_core ? 'общественное ядро' : 'вне общественного ядра'}</summary>

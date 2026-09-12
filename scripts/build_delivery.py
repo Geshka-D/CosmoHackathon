@@ -41,10 +41,11 @@ def build(destination: Path):
             source = ROOT/rel
             if not source.resolve().is_relative_to(ROOT) or sha(source.read_bytes()) != expected:
                 raise ValueError('Stale submission input: '+rel+'; rebuild before packaging')
-    names = {'requirements.txt','CONTROL_RESULTS.json','README_RUN.md',
+    names = {'requirements.txt','pytest.ini','CONTROL_RESULTS.json','README_RUN.md',
              'scripts/reproduce.py','scripts/build_management.py','scripts/build_submission.py',
              'scripts/build_delivery.py','scripts/verify_delivery.py',
              'tests/m3_independent.py','tests/m3_browser_run.py','tests/m6_browser.mjs',
+             'tests/test_advanced_math.py',
              'results/m3_decision.json'}
     for tree in ['backend','config','case_source','assets/fonts','frontend/src','frontend/dist','docs','packaging']:
         for folder, dirs, files in os.walk(ROOT/tree):
@@ -78,7 +79,7 @@ def build(destination: Path):
     payloads['README.md'] = payloads['README_RUN.md']
     payloads['Dockerfile'] = payloads['packaging/Dockerfile']
     payloads['.dockerignore'] = payloads['packaging/dockerignore']
-    payloads['.gitignore'] = b'.venv/\nnode_modules/\n__pycache__/\n*.pyc\nout/\n.npm-cache/\n.env\n.env.*\n'
+    payloads['.gitignore'] = b'.venv/\n.venv312/\nnode_modules/\n__pycache__/\n*.pyc\nout/\n.npm-cache/\n.env\n.env.*\n'
     # Source and release identities depend on exact bytes, including CRLF.
     # Preserve them even when an expert clones with core.autocrlf=true.
     payloads['.gitattributes'] = b'* -text\n'
