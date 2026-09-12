@@ -5,6 +5,7 @@ import { ResultPanel } from './ResultPanel'
 import { DecisionPanel } from './DecisionPanel'
 import { DecisionAtlas } from './DecisionAtlas'
 import { ImplementationPanel } from './ImplementationPanel'
+import { IntelligencePanel } from './IntelligencePanel'
 import { StressPanel } from './StressPanel'
 import { useDecision } from './useDecision'
 import { portfolioId } from './decision'
@@ -268,6 +269,21 @@ export default function App() {
         <section className="panel results" aria-label="Результаты расчёта" aria-busy={!computed && !error}>
           {computed ? <ResultPanel result={computed.current} scenario={workspace.scenario} /> : <><h2>Цена и ограничения</h2><p role="status">{error ? 'Результаты скрыты до успешного пересчёта текущих настроек.' : busy ? 'Ожидаем завершения операции с JSON…' : 'Пересчитываем текущий ввод на сервере…'}</p></>}
         </section>
+        <IntelligencePanel catalog={catalog} current={workspace.current.request} search={decision.result?.configuration.request} onCompare={(name, request) => {
+          const alternatives = [...workspace.alternatives]
+          for (const item of [{ name: workspace.current.name, request: workspace.current.request }, { name, request }]) {
+            if (!alternatives.some(a => signature(a.request.selection) === signature(item.request.selection))) {
+              if (alternatives.length >= 3) { setNotice('Сравнение заполнено: удалите один из трёх вариантов и повторите добавление.'); return }
+              const originalName = item.name.trim() || 'Портфель'
+              let uniqueName = originalName.slice(0, 76)
+              let suffix = 1
+              while (alternatives.some(a => a.name.toLocaleLowerCase() === uniqueName.toLocaleLowerCase())) uniqueName = `${originalName.slice(0, 76)} ${suffix++}`
+              alternatives.push({ ...structuredClone(item), name: uniqueName, alternative_id: `alt-${crypto.randomUUID()}` })
+            }
+          }
+          change({ ...workspace, alternatives })
+          document.getElementById('comparison')?.scrollIntoView({ block: 'start' })
+        }} />
         <Comparison workspace={workspace} computed={computed} onLoad={index => { const item = workspace.alternatives[index]; load(item.name, item.request) }} onRemove={index => change({ ...workspace, alternatives: workspace.alternatives.filter((_, i) => i !== index) })} />
         <ImplementationPanel currentRequest={workspace.current.request} onLoad={load} />
         <section id="catalog" className="panel">
