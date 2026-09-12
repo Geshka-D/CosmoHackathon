@@ -1,0 +1,32 @@
+[
+  {
+    "path": "KOSMOS_IMPLEMENTATION_PLAN.md",
+    "size_bytes": 78535,
+    "sha256": "101c2944e115103340739d49149f2b52db29ad5d64cee499d8ad0c5918ea300b"
+  },
+  {
+    "path": "README.md",
+    "size_bytes": 87374,
+    "sha256": "21776c3e41cb0f1b11f5107e0facc26bc592fe6ba184fcc70ee67ad26b15db07"
+  },
+  {
+    "path": "case_core.py",
+    "size_bytes": 4461,
+    "sha256": "0a6da8b99dbb2e6ff03cb94012f539d8cd0b9c7dd05525bda5b202ebb461e20c"
+  },
+  {
+    "path": "CONTROL_RESULTS.json",
+    "size_bytes": 6523,
+    "sha256": "70be1d35d88fc26a495af14acb043e17d9e0392c002a88f35a09bff7d174ab20"
+  },
+  {
+    "path": "task.pdf",
+    "size_bytes": 712654,
+    "sha256": "9d00f5ef6e4741fd5a2daed0c5034d738366aa79e65ace04e36882dc16179c8e"
+  },
+  {
+    "path": "criteria.pdf",
+    "size_bytes": 721004,
+    "sha256": "dfdb00b9ed08c37bd7cc7de0e7ce0bf7c7087f084d5fa9199e637a9f45bcae58"
+  }
+]

@@ -84,14 +84,15 @@ def eligible_without_budget(rows, scenario, locks):
             all(ok for key, ok in r["scenarios"][scenario]["checks"].items() if key != "c0_limit")]
 
 
-def research_rows(rows, scenario, cap):
+def research_rows(rows, scenario, cap, uplift=0.0):
     result = []
     for row in rows:
-        checks = {**row["scenarios"][scenario]["checks"], "c0_limit": row["metrics"]["c0_mrub"] <= cap + EPS}
+        cost = row["metrics"]["c0_mrub"] * (1 + uplift)
+        checks = {**row["scenarios"][scenario]["checks"], "c0_limit": cost <= cap + EPS}
         ok = all(checks.values())
         result.append({**row, "scenarios": {**row["scenarios"], "RESEARCH": {
             "ok": ok, "status": "PASS" if ok else "FAIL", "checks": checks,
-            "c0_limit": cap, "c0_margin": cap - row["metrics"]["c0_mrub"]}}})
+            "c0_limit": cap, "c0_margin": cap - cost}}})
     return result
 
 
@@ -137,21 +138,22 @@ def recovery(before, ranking, scenario):
     return list(unique.values())
 
 
-def transition_map(eligible, weights, bounds, scenario):
+def transition_map(eligible, weights, bounds, scenario, uplift=0.0):
     """Sweep actual portfolio C0 breakpoints once; retain only leader changes."""
     if not eligible:
         return []
-    max_cap = max(r["metrics"]["c0_mrub"] for r in eligible)
-    order = rank(research_rows(eligible, scenario, max_cap), weights, bounds, "RESEARCH")
+    max_cap = max(r["metrics"]["c0_mrub"] * (1 + uplift) for r in eligible)
+    order = rank(research_rows(eligible, scenario, max_cap, uplift), weights, bounds, "RESEARCH")
     best, intervals = None, []
-    for row in sorted(order, key=lambda r: (acceptance_boundary(r["metrics"]["c0_mrub"]), r["rank"])):
+    for row in sorted(order, key=lambda r: (acceptance_boundary(r["metrics"]["c0_mrub"] * (1 + uplift)), r["rank"])):
         if best is not None and row["rank"] >= best["rank"]:
             continue
-        lower = acceptance_boundary(row["metrics"]["c0_mrub"])
+        cost = row["metrics"]["c0_mrub"] * (1 + uplift)
+        lower = acceptance_boundary(cost)
         if intervals:
             intervals[-1]["upper_exclusive"] = lower
         intervals.append({"lower_inclusive": lower, "upper_exclusive": None,
-                          "economic_breakpoint_c0": row["metrics"]["c0_mrub"],
+                          "economic_breakpoint_c0": cost,
                           "portfolio_id": row["portfolio_id"], "request": evaluation_input(row),
                           "metrics": row["metrics"],
                           "change_from_previous": None if best is None else {
@@ -193,10 +195,12 @@ def explain(ranking, scenario):
             "caution": "Индексы трактуются согласно объявленному MCDA; t_rep не означает окупаемость."}
 
 
-def analyze(value, repository: CaseRepository | None = None):
+def analyze(value, repository: CaseRepository | None = None, *, uplift=0.0):
     request = validate_request(IntelligenceRequest, value)
     if (request.context == "RESEARCH") != (request.budget_cap is not None):
         raise ServiceError("context_budget_mismatch", "Произвольный budget_cap разрешён только в RESEARCH и обязателен в нём.")
+    if not math.isfinite(uplift) or uplift < 0 or (uplift and request.context != "RESEARCH"):
+        raise ServiceError("invalid_uplift", "Надбавка должна быть конечной, неотрицательной и только RESEARCH.")
     repository = repository or CaseRepository()
     snapshot = repository.load()
     if request.search.source_hashes != snapshot.source_hashes:
@@ -205,16 +209,19 @@ def analyze(value, repository: CaseRepository | None = None):
     weights, scenario = request.search.weights.model_dump(), request.search.scenario
     cap = request.budget_cap if request.context == "RESEARCH" else snapshot.config["scenarios"][scenario]["c0_max_mrub"]
     active = "RESEARCH" if request.context == "RESEARCH" else scenario
-    rows = research_rows(population["rows"], scenario, cap) if active == "RESEARCH" else population["rows"]
+    if any(not math.isfinite(r["metrics"]["c0_mrub"] * (1 + uplift)) for r in population["rows"]):
+        raise ServiceError("invalid_uplift", "Надбавка приводит к переполнению C0.")
+    rows = research_rows(population["rows"], scenario, cap, uplift) if active == "RESEARCH" else population["rows"]
     current_id = portfolio_id(sorted(request.current.model_dump()["selection"], key=lambda r: r["lot_id"]))
     current = next(r for r in rows if r["portfolio_id"] == current_id)
     eligible = eligible_without_budget(rows, scenario, request.locks)
     ranking = rank([r for r in rows if matches_locks(r, request.locks)], weights, population["reference"]["bounds"], active)
-    minimum = min((r["metrics"]["c0_mrub"] for r in eligible), default=None)
+    minimum = min((r["metrics"]["c0_mrub"] * (1 + uplift) for r in eligible), default=None)
     diagnostic_config = deepcopy(snapshot.config)
     if active == "RESEARCH":
         diagnostic_config["scenarios"][scenario]["c0_max_mrub"] = cap
-    diagnostics = scenario_diagnostics(current["metrics"], diagnostic_config, snapshot.core, True)[scenario]
+    current_cost = current["metrics"]["c0_mrub"] * (1 + uplift)
+    diagnostics = scenario_diagnostics({**current["metrics"], "c0_mrub": current_cost}, diagnostic_config, snapshot.core, True)[scenario]
     if active == "RESEARCH":
         diagnostics["scenario"] = "RESEARCH"
         for d in diagnostics["diagnostics"]:
@@ -248,9 +255,9 @@ def analyze(value, repository: CaseRepository | None = None):
             "ranking_context": {"method_version": request.search.method_version, "reference": population["reference"],
                                 "weights": {"original": weights, "applied": normalize_weights(weights)}, "tie_break": TIE_BREAK,
                                 "outside_base_range": "Fixed BASE formula extrapolates; values are not clamped or renormalized."},
-            "budget": {"cap": cap, "current_margin": cap - current["metrics"]["c0_mrub"],
-                       "current_breakpoint": current["metrics"]["c0_mrub"], "eps": EPS,
-                       "current_acceptance_boundary": acceptance_boundary(current["metrics"]["c0_mrub"]),
+            "budget": {"cap": cap, "current_margin": cap - current_cost,
+                       "current_breakpoint": current_cost, "eps": EPS,
+                       "current_acceptance_boundary": acceptance_boundary(current_cost),
                        "minimum_feasible_budget": minimum,
                        "minimum_acceptance_boundary": None if minimum is None else acceptance_boundary(minimum),
                        "budget_only_blocker": not ranking and minimum is not None,
@@ -265,7 +272,7 @@ def analyze(value, repository: CaseRepository | None = None):
             "accepted_recommendation_id": accepted["portfolio_id"], "local_sensitivity": local_sensitivity,
             "recommendation": None if leader is None else proposal(current, leader, active, ["EXISTING_MCDA"]),
             "explanation": explain(ranking, active),
-            "transition_map": transition_map(eligible, weights, population["reference"]["bounds"], scenario),
+            "transition_map": transition_map(eligible, weights, population["reference"]["bounds"], scenario, uplift),
             "explorer": {"projection": "C0 × VPUB; two of eight criteria, not a multidimensional Pareto frontier",
                          "extrema": extrema, "strong_alternatives": [r["portfolio_id"] for r in ranking[1:4]],
                          "points": [{"portfolio_id": r["portfolio_id"], "selection": r["selection"],
