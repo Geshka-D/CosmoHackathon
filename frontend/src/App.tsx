@@ -234,7 +234,7 @@ export default function App() {
         <h1>Портфель космических сервисов</h1>
       </div>
       <p className="masthead-story">потребность → пользователь → сервис → действие → плановый эффект → общественная ценность → кто платит → почему этот портфель → STRESS</p>
-      <button id="enter-pitch" className="pitch-launch" disabled={!decision.result} onClick={() => { returnScroll.current = window.scrollY; setPitch(0) }}>Начать защиту · Pitch Mode</button>
+      <button id="enter-pitch" className="pitch-launch quiet" disabled={!decision.result} onClick={() => { returnScroll.current = window.scrollY; setPitch(0) }}>Обзор решения</button>
     </header>
     <nav aria-label="Разделы">
       <a href="#overview">Обзор</a><a href="#decision">Поиск и выбор</a><a href="#official-shock">BASE → STRESS</a><a href="#intelligence">Budget Lab / Recovery</a><a href="#financing">Финансирование</a><a href="#decision-brief">Brief</a>

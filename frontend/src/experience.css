@@ -205,7 +205,6 @@
 .pitch-active .responsibility-chain { margin-top: 18px; }
 @media (max-width: 1000px) {
   .masthead { flex-wrap: wrap; }
-  .pitch-launch { margin-left: 0; }
   .responsibility-chain { grid-template-columns: 1fr 1fr; }
   .responsibility-chain li { border-top-width: 2px; }
   .responsibility-chain li:last-child { grid-column: 1 / -1; }

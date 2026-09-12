@@ -35,14 +35,14 @@ export function PitchControls({ step, onStep, onExit }: {
     return () => document.removeEventListener('keydown', escape)
   }, [onExit])
   return <aside className="pitch-controls" aria-label="Управление защитой">
-    <div className="pitch-top"><span className="eyebrow">KOSMOS / Jury mode · 3–5 минут</span>
+    <div className="pitch-top"><span className="eyebrow">KOSMOS / Обзор решения · 3–5 минут</span>
       <div className="actions"><button disabled={step === 0} onClick={() => onStep(step - 1)}>Back</button>
         <span className="pitch-count">{step + 1} / {pitchChapters.length}</span>
         <button className="primary" disabled={step === pitchChapters.length - 1} onClick={() => onStep(step + 1)}>Next</button>
-        <button onClick={() => onStep(0)}>Reset Pitch</button><button onClick={onExit}>Выйти из Pitch</button></div></div>
+        <button onClick={() => onStep(0)}>С начала</button><button onClick={onExit}>Закрыть обзор</button></div></div>
     <h2 ref={heading} tabIndex={-1}>{pitchChapters[step][0]}</h2>
     <p>{pitchChapters[step][1]}</p>
-    <small>Данные и настройки продукта общие. Reset Pitch возвращает к началу рассказа; исследование сбрасывается через Reset DSS.</small>
+    <small>Данные и настройки продукта общие. «С начала» возвращает к началу рассказа; исследование сбрасывается через Reset DSS.</small>
   </aside>
 }
 
