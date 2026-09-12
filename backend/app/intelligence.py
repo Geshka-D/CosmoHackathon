@@ -170,8 +170,21 @@ def explain(ranking, scenario):
                     "score_gap": leader["score"] - peer["score"],
                     "contribution_delta": {k: leader["contributions"][k] - peer["contributions"][k] for k in FIELDS},
                     **tradeoffs(peer, leader)} for peer in peers]
+    nearest = comparisons[0] if comparisons else None
+    def main_difference(positive):
+        if nearest is None:
+            return None
+        deltas = nearest["contribution_delta"]
+        choices = [k for k in FIELDS if deltas[k] > 0] if positive else [k for k in FIELDS if deltas[k] < 0]
+        if not choices:
+            return None
+        criterion = max(choices, key=lambda k: abs(deltas[k]))
+        return {"criterion": criterion, "metric": FIELDS[criterion],
+                "raw_delta": nearest["delta"][FIELDS[criterion]], "score_contribution_delta": deltas[criterion]}
     return {"interpretation": "Предпочтительный портфель при заданных управленческих приоритетах после hard constraints.",
             "strongest_weighted_criterion": max(FIELDS, key=lambda k: leader["contributions"][k]),
+            "main_gain_against_runner_up": main_difference(True),
+            "main_compromise_against_runner_up": main_difference(False),
             "nearest_alternatives": comparisons, "official_stress": leader["scenarios"]["STRESS"],
             "real_vulnerabilities": {"c0_margin": leader["scenarios"][scenario]["c0_margin"],
                                      "sum_service_gaps": leader["sum_lot_funding_gaps"]},

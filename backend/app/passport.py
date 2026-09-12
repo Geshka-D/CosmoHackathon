@@ -31,14 +31,14 @@ def passport(value, repository: CaseRepository | None = None):
             raise ValueError("M4 source mismatch")
         # Never trust cached amounts as computation inputs.
         accepted = evaluate_validated(EvaluateRequest.model_validate(active["request"]), snapshot)
-        if finance_table(accepted) != active["finance"]:
+        if finance_table(accepted) != active["finance"] or saved["management"]["finance"] != active["finance"]:
             raise ValueError("Active finance mismatch")
     except (OSError, ValueError, KeyError, TypeError) as exc:
         raise ServiceError("passport_sources_unavailable", "Активные M4/M5 недоступны или несогласованы; паспорт не подставляется из истории.", 503) from exc
     services = []
     for row in finance["rows"]:
         card = next((s for s in active["services"] if (s["lot_id"], s["mode_id"]) == (row["lot_id"], row["mode_id"])), None)
-        source = f"{m4['directory']}/results/m4_management.json#/services/{row['lot_id']}"
+        source = f"{m4['directory']}/results/m4_management.json#/services/{active['services'].index(card)}" if card else None
         def claim(text, kind):
             return {"text": text, "provenance": kind, "source": source if card else None}
         roles = card["roles"] if card else {}

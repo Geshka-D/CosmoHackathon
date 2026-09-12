@@ -9,6 +9,7 @@ import math
 from copy import deepcopy
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
@@ -16,6 +17,7 @@ from backend.app.canonical_adapter import evaluate
 from backend.app.case_loader import CaseRepository
 from backend.app.constraints import RULES
 from backend.app.contracts import EPS, canonical_json
+from backend.app.contracts import ServiceError
 from backend.app.decision import recompute_decision, evaluation_input
 from backend.app.decision_model import normalize_weights, rank
 from backend.app.intelligence import (Lock, acceptance_boundary, analyze, change_cost,
@@ -135,11 +137,10 @@ class IntelligenceTests(unittest.TestCase):
                 self.assertEqual(interval['upper_exclusive'], intervals[index+1]['lower_inclusive'])
                 self.assertNotEqual(interval['portfolio_id'], intervals[index+1]['portfolio_id'])
         # Verify every actual C0 entry point, not slider samples.
+        full = rank(research_rows(eligible, 'BASE', 1e6), self.weights, self.bounds, 'RESEARCH')
         for cap in sorted({r['metrics']['c0_mrub'] for r in eligible}):
             # Scores are invariant across budgets: take the first affordable in
             # the full-budget ranking, independently of the production sweep.
-            full = rank(research_rows(eligible, 'BASE', 1e6), self.weights, self.bounds, 'RESEARCH') if previous_ids is not None else full
-            previous_ids = None
             expected = next(r for r in full if r['metrics']['c0_mrub'] <= cap + EPS)
             interval = next(i for i in intervals if i['lower_inclusive'] <= cap and (i['upper_exclusive'] is None or cap < i['upper_exclusive']))
             self.assertEqual(interval['portfolio_id'], expected['portfolio_id'])
@@ -173,6 +174,9 @@ class IntelligenceTests(unittest.TestCase):
         pointer = json.loads((ROOT / 'results/m4_current.json').read_bytes())
         active = json.loads((ROOT / pointer['directory'] / 'results/m4_management.json').read_bytes())
         self.assertEqual(p['finance'], active['finance'])
+        m5 = json.loads((ROOT / 'results/m5_current.json').read_bytes())
+        submission = json.loads((ROOT / m5['directory'] / 'bundle.json').read_bytes())
+        self.assertEqual(p['finance'], submission['management']['finance'])
         for service in p['services']:
             self.assertEqual(service['confirmed_contracts']['provenance'], 'UNKNOWN')
         alternate = deepcopy(evaluation_input(self.saved))
@@ -203,6 +207,13 @@ class IntelligenceTests(unittest.TestCase):
         original = evaluate(evaluation_input(self.saved))
         self.assertEqual(result['current']['diagnostics'], original['scenarios']['BASE'])
         explanation = result['explanation']
+        for key, positive in [('main_gain_against_runner_up', True), ('main_compromise_against_runner_up', False)]:
+            item = explanation[key]
+            if item is not None:
+                differences = explanation['nearest_alternatives'][0]['contribution_delta']
+                options = [v for v in differences.values() if (v > 0 if positive else v < 0)]
+                self.assertEqual(abs(item['score_contribution_delta']), max(map(abs, options)))
+                self.assertEqual(item['raw_delta'], explanation['nearest_alternatives'][0]['delta'][item['metric']])
         for peer in explanation['nearest_alternatives']:
             row = next(r for r in self.base if r['portfolio_id'] == peer['portfolio_id'])
             self.assertEqual(peer['score_gap'], self.saved['score'] - row['score'])
@@ -215,6 +226,13 @@ class IntelligenceTests(unittest.TestCase):
             self.assertAlmostEqual(run['score_gap_to_original'], reranked[0]['score'] - saved['score'])
         self.assertEqual(change_cost(self.saved, self.saved), (0, 0))
         self.assertEqual(recovery(self.bad, [], 'BASE'), [])
+
+    def test_10_passport_fail_closed_on_active_pointer_failure(self):
+        with patch('backend.app.passport.read_current_release', side_effect=ValueError('corrupt pointer')):
+            with self.assertRaises(ServiceError) as error:
+                passport(evaluation_input(self.saved))
+            self.assertEqual(error.exception.status_code, 503)
+            self.assertEqual(error.exception.code, 'passport_sources_unavailable')
 
     def test_99_official_bytes_sources_and_pointers_preserved(self):
         self.assertEqual(canonical_json(recompute_decision(self.config)), self.official_before)
