@@ -19,6 +19,8 @@ from .search import search
 from .sensitivity import sensitivity
 from .management import build_management, finance_csv
 from .submission import downloads_for
+from .intelligence import analyze
+from .passport import passport
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +114,16 @@ def create_app(repository: CaseRepository | None = None) -> FastAPI:
     async def decision_endpoint(request: Request):
         value = await read_input(request)
         return json_response(await run_in_threadpool(recompute_decision, value, repository))
+
+    @app.post("/api/intelligence")
+    async def intelligence_endpoint(request: Request):
+        value = await read_input(request)
+        return json_response(await run_in_threadpool(analyze, value, repository))
+
+    @app.post("/api/passport")
+    async def passport_endpoint(request: Request):
+        value = await read_input(request)
+        return json_response(await run_in_threadpool(passport, value, repository))
 
     @app.get("/api/implementation")
     def implementation_endpoint():
