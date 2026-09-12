@@ -1,0 +1,13 @@
+# This file is copied only into the curated delivery directory.
+.git
+.venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+.npm-cache
+out
+reports
+*.zip
+.env
+.env.*
+**/*_jury.ipynb

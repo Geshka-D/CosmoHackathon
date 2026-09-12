@@ -1,0 +1,119 @@
+{
+  "manifest_version": "1.0",
+  "case_id": "SEP-KOSMOS-INFRA-2026",
+  "case_version": "1.1",
+  "archive_path": "C:/Users/Admin/Downloads/doc-1789140634.zip",
+  "archive_sha256": "767f3906b531d0adf5fbf6efd6bbc90a6bba92246617d9fecab75052072c763e",
+  "policy": "Exact S1-S6 allowlist only; no jury member opened; notebook preserved, never executed",
+  "files": [
+    {
+      "source_id": "S1",
+      "path": "case_source/task.pdf",
+      "size_bytes": 712654,
+      "sha256": "9d00f5ef6e4741fd5a2daed0c5034d738366aa79e65ace04e36882dc16179c8e",
+      "case_version": "1.1",
+      "archive_member": "Космос как инфраструктура — Постановка задачи.pdf",
+      "provenance": "local archive; immutable bytes"
+    },
+    {
+      "source_id": "S2",
+      "path": "case_source/criteria.pdf",
+      "size_bytes": 721004,
+      "sha256": "dfdb00b9ed08c37bd7cc7de0e7ce0bf7c7087f084d5fa9199e637a9f45bcae58",
+      "case_version": "1.1",
+      "archive_member": "Космос как инфраструктура — Критерии оценки.pdf",
+      "provenance": "local archive; immutable bytes"
+    },
+    {
+      "source_id": "S3",
+      "path": "case_source/README.md",
+      "size_bytes": 87374,
+      "sha256": "21776c3e41cb0f1b11f5107e0facc26bc592fe6ba184fcc70ee67ad26b15db07",
+      "case_version": "1.1",
+      "archive_member": "test-main/README.md",
+      "provenance": "local archive; immutable bytes"
+    },
+    {
+      "source_id": "S4",
+      "path": "case_source/case_core.py",
+      "size_bytes": 4461,
+      "sha256": "0a6da8b99dbb2e6ff03cb94012f539d8cd0b9c7dd05525bda5b202ebb461e20c",
+      "case_version": "1.1",
+      "archive_member": "test-main/case_core.py",
+      "provenance": "local archive; immutable bytes"
+    },
+    {
+      "source_id": "S5",
+      "path": "case_source/data/lots.csv",
+      "size_bytes": 935,
+      "sha256": "8e2b6244178344f9f97050ce5c9f337cd311e9f86bbd96bbbfbdde6999c4ba8b",
+      "case_version": "1.1",
+      "archive_member": "test-main/data/lots.csv",
+      "provenance": "local archive; immutable bytes"
+    },
+    {
+      "source_id": "S5",
+      "path": "case_source/data/access_modes.csv",
+      "size_bytes": 153,
+      "sha256": "2669239db6c366c15b13df9d874dc3c8a790ba961bfeddbf9c428fa82fb861c7",
+      "case_version": "1.1",
+      "archive_member": "test-main/data/access_modes.csv",
+      "provenance": "local archive; immutable bytes"
+    },
+    {
+      "source_id": "S5",
+      "path": "case_source/config/case_config.json",
+      "size_bytes": 352,
+      "sha256": "aae20d265b69fa8ec309ce8dc435fb1ae43ed34510c2746baa5024b472426463",
+      "case_version": "1.1",
+      "archive_member": "test-main/config/case_config.json",
+      "provenance": "local archive; immutable bytes"
+    },
+    {
+      "source_id": "S6",
+      "path": "case_source/Космос_как_инфраструктура.ipynb",
+      "size_bytes": 72947,
+      "sha256": "2201afcf4b4a0a4e2a7d637da773fe7f2518192aee4156e77781484341b947b9",
+      "case_version": "1.1",
+      "archive_member": "test-main/Космос_как_инфраструктура.ipynb",
+      "provenance": "local archive; immutable bytes"
+    }
+  ],
+  "originals": [
+    {
+      "path": "KOSMOS_IMPLEMENTATION_PLAN.md",
+      "size_bytes": 78535,
+      "sha256": "101c2944e115103340739d49149f2b52db29ad5d64cee499d8ad0c5918ea300b"
+    },
+    {
+      "path": "README.md",
+      "size_bytes": 87374,
+      "sha256": "21776c3e41cb0f1b11f5107e0facc26bc592fe6ba184fcc70ee67ad26b15db07"
+    },
+    {
+      "path": "case_core.py",
+      "size_bytes": 4461,
+      "sha256": "0a6da8b99dbb2e6ff03cb94012f539d8cd0b9c7dd05525bda5b202ebb461e20c"
+    },
+    {
+      "path": "CONTROL_RESULTS.json",
+      "size_bytes": 6523,
+      "sha256": "70be1d35d88fc26a495af14acb043e17d9e0392c002a88f35a09bff7d174ab20"
+    },
+    {
+      "path": "task.pdf",
+      "size_bytes": 712654,
+      "sha256": "9d00f5ef6e4741fd5a2daed0c5034d738366aa79e65ace04e36882dc16179c8e"
+    },
+    {
+      "path": "criteria.pdf",
+      "size_bytes": 721004,
+      "sha256": "dfdb00b9ed08c37bd7cc7de0e7ce0bf7c7087f084d5fa9199e637a9f45bcae58"
+    }
+  ],
+  "control_results": {
+    "path": "CONTROL_RESULTS.json",
+    "purpose": "regression reference only; never production inputs"
+  },
+  "missing_original": "verify_case.py (not found; not recreated)"
+}

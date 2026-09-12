@@ -1,0 +1,5 @@
+# Backend — расчётный слой M1 и workspace M2
+
+`case_loader.py` проверяет снимок источников; `schemas.py` и `contracts.py` отклоняют неоднозначный ввод; `canonical_adapter.py` вызывает неизменный S4 и раскрывает provenance; `constraints.py` объясняет его девять решений; `comparison.py` пересчитывает альтернативы на одном снимке. `workspace.py` даёт ручной M2 import/export. M3 добавляет `search.py`, `decision_model.py`, `sensitivity.py`, `decision.py` и предметный `decision_context.py`; старые evaluate/compare/workspace контракты сохранены. `main.py` отдаёт API и только frontend/dist. CLI `scripts/reproduce.py` использует те же сервисы без HTTP; `--decision config/m3_decision.json` воспроизводит активный выбор. Полные контракты — `docs/api.md`.
+
+Контракт: `docs/api.md`. Запуск: `README_RUN.md`. Evidence Coder: `reports/M1_CODER.md`, `reports/M2_CODER.md`; независимая приёмка M1 сохранена в M1_EVALUATOR. Production не читает CONTROL, ZIP, notebook outputs или Tester evidence. UI отображает числа этого Python-слоя, без второго вычислителя.

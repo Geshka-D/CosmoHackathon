@@ -1,0 +1,284 @@
+{
+  "source": "Uploaded case v1.1; canonical case_core.py; no notebook execution",
+  "total": 5670,
+  "base_feasible": 1031,
+  "stress_feasible": 143,
+  "base_only": 888,
+  "elapsed_seconds": 12.82413370399999,
+  "extremes": {
+    "base_vpub_mrub_per_year": {
+      "ties": 1,
+      "record": {
+        "selection": [
+          [
+            "FIRE",
+            "A"
+          ],
+          [
+            "FLOOD",
+            "A"
+          ],
+          [
+            "INFRA",
+            "B"
+          ],
+          [
+            "ENV",
+            "A"
+          ]
+        ],
+        "selected_lots": 4,
+        "c0_mrub": 1297.0,
+        "opex_mrub_per_year": 342.5,
+        "vpub_mrub_per_year": 1766.0,
+        "cash_mrub_per_year": 373.75,
+        "kcash": 1.0912408759124088,
+        "t_rep": 0.6849999999999999,
+        "readiness_1_5": 4.2,
+        "resilience_1_5": 3.9749999999999996,
+        "scale_1_5": 4.5,
+        "territorial_archetypes": 4,
+        "capability_groups": 2,
+        "capability_set": [
+          "EO",
+          "PNT/InSAR"
+        ],
+        "public_core_lots": 3,
+        "base_ok": true,
+        "stress_ok": false,
+        "base_failed": [],
+        "stress_failed": [
+          "c0_limit"
+        ]
+      }
+    },
+    "base_c0_mrub": {
+      "ties": 1,
+      "record": {
+        "selection": [
+          [
+            "FIRE",
+            "C"
+          ],
+          [
+            "AGRI",
+            "A"
+          ],
+          [
+            "TRANS",
+            "A"
+          ],
+          [
+            "ENV",
+            "C"
+          ]
+        ],
+        "selected_lots": 4,
+        "c0_mrub": 1123.5,
+        "opex_mrub_per_year": 304.25,
+        "vpub_mrub_per_year": 1020.4000000000001,
+        "cash_mrub_per_year": 301.25,
+        "kcash": 0.990139687756779,
+        "t_rep": 0.73,
+        "readiness_1_5": 4.525,
+        "resilience_1_5": 4.05,
+        "scale_1_5": 4.675,
+        "territorial_archetypes": 4,
+        "capability_groups": 2,
+        "capability_set": [
+          "EO",
+          "PNT/InSAR"
+        ],
+        "public_core_lots": 2,
+        "base_ok": true,
+        "stress_ok": true,
+        "base_failed": [],
+        "stress_failed": []
+      }
+    },
+    "base_kcash": {
+      "ties": 1,
+      "record": {
+        "selection": [
+          [
+            "FLOOD",
+            "A"
+          ],
+          [
+            "AGRI",
+            "C"
+          ],
+          [
+            "INFRA",
+            "C"
+          ],
+          [
+            "ENV",
+            "A"
+          ]
+        ],
+        "selected_lots": 4,
+        "c0_mrub": 1209.6,
+        "opex_mrub_per_year": 320.5,
+        "vpub_mrub_per_year": 1288.6,
+        "cash_mrub_per_year": 424.5,
+        "kcash": 1.3244929797191887,
+        "t_rep": 0.7,
+        "readiness_1_5": 4.275,
+        "resilience_1_5": 4.125,
+        "scale_1_5": 4.575,
+        "territorial_archetypes": 4,
+        "capability_groups": 2,
+        "capability_set": [
+          "EO",
+          "PNT/InSAR"
+        ],
+        "public_core_lots": 2,
+        "base_ok": true,
+        "stress_ok": false,
+        "base_failed": [],
+        "stress_failed": [
+          "c0_limit"
+        ]
+      }
+    },
+    "stress_vpub_mrub_per_year": {
+      "ties": 1,
+      "record": {
+        "selection": [
+          [
+            "FLOOD",
+            "A"
+          ],
+          [
+            "AGRI",
+            "A"
+          ],
+          [
+            "TRANS",
+            "B"
+          ],
+          [
+            "ENV",
+            "A"
+          ]
+        ],
+        "selected_lots": 4,
+        "c0_mrub": 1174.0,
+        "opex_mrub_per_year": 322.0,
+        "vpub_mrub_per_year": 1370.4,
+        "cash_mrub_per_year": 335.0,
+        "kcash": 1.0403726708074534,
+        "t_rep": 0.715,
+        "readiness_1_5": 4.449999999999999,
+        "resilience_1_5": 4.2250000000000005,
+        "scale_1_5": 4.6,
+        "territorial_archetypes": 4,
+        "capability_groups": 2,
+        "capability_set": [
+          "EO",
+          "PNT/InSAR"
+        ],
+        "public_core_lots": 3,
+        "base_ok": true,
+        "stress_ok": true,
+        "base_failed": [],
+        "stress_failed": []
+      }
+    },
+    "stress_c0_mrub": {
+      "ties": 1,
+      "record": {
+        "selection": [
+          [
+            "FIRE",
+            "C"
+          ],
+          [
+            "AGRI",
+            "A"
+          ],
+          [
+            "TRANS",
+            "A"
+          ],
+          [
+            "ENV",
+            "C"
+          ]
+        ],
+        "selected_lots": 4,
+        "c0_mrub": 1123.5,
+        "opex_mrub_per_year": 304.25,
+        "vpub_mrub_per_year": 1020.4000000000001,
+        "cash_mrub_per_year": 301.25,
+        "kcash": 0.990139687756779,
+        "t_rep": 0.73,
+        "readiness_1_5": 4.525,
+        "resilience_1_5": 4.05,
+        "scale_1_5": 4.675,
+        "territorial_archetypes": 4,
+        "capability_groups": 2,
+        "capability_set": [
+          "EO",
+          "PNT/InSAR"
+        ],
+        "public_core_lots": 2,
+        "base_ok": true,
+        "stress_ok": true,
+        "base_failed": [],
+        "stress_failed": []
+      }
+    },
+    "stress_kcash": {
+      "ties": 1,
+      "record": {
+        "selection": [
+          [
+            "FLOOD",
+            "A"
+          ],
+          [
+            "AGRI",
+            "C"
+          ],
+          [
+            "INFRA",
+            "C"
+          ],
+          [
+            "TRANS",
+            "A"
+          ]
+        ],
+        "selected_lots": 4,
+        "c0_mrub": 1178.1,
+        "opex_mrub_per_year": 315.25,
+        "vpub_mrub_per_year": 1148.6,
+        "cash_mrub_per_year": 417.0,
+        "kcash": 1.3227597145122918,
+        "t_rep": 0.71,
+        "readiness_1_5": 4.375,
+        "resilience_1_5": 4.175000000000001,
+        "scale_1_5": 4.575,
+        "territorial_archetypes": 4,
+        "capability_groups": 2,
+        "capability_set": [
+          "EO",
+          "PNT/InSAR"
+        ],
+        "public_core_lots": 2,
+        "base_ok": true,
+        "stress_ok": true,
+        "base_failed": [],
+        "stress_failed": []
+      }
+    }
+  },
+  "source_sha256": {
+    "case_core.py": "0a6da8b99dbb2e6ff03cb94012f539d8cd0b9c7dd05525bda5b202ebb461e20c",
+    "data/lots.csv": "8e2b6244178344f9f97050ce5c9f337cd311e9f86bbd96bbbfbdde6999c4ba8b",
+    "data/access_modes.csv": "2669239db6c366c15b13df9d874dc3c8a790ba961bfeddbf9c428fa82fb861c7",
+    "config/case_config.json": "aae20d265b69fa8ec309ce8dc435fb1ae43ed34510c2746baa5024b472426463"
+  }
+}

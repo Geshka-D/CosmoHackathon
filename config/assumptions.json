@@ -1,0 +1,149 @@
+{
+  "schema_version": "kosmos-assumptions/1",
+  "stage": "M4",
+  "status": "TEAM_PROPOSALS_AND_UNRESOLVED_IMPLEMENTATION_CONDITIONS",
+  "team_name": null,
+  "selected_portfolio": [
+    {
+      "lot_id": "AGRI",
+      "mode_id": "C"
+    },
+    {
+      "lot_id": "ENV",
+      "mode_id": "A"
+    },
+    {
+      "lot_id": "FLOOD",
+      "mode_id": "A"
+    },
+    {
+      "lot_id": "TRANS",
+      "mode_id": "C"
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "A01",
+      "topic": "team_name",
+      "value": null,
+      "status": "UNKNOWN",
+      "reason": "Пользователь не сообщил название; cached notebook outputs не используются",
+      "resolve_by": "До оформления команды в финальном комплекте; название не является входом расчёта"
+    },
+    {
+      "id": "A02",
+      "topic": "calculation_period",
+      "value": "C0 при запуске + один год эксплуатации при постоянных исходных параметрах",
+      "status": "TEAM_INTERPRETATION_OF_SOURCE_UNITS",
+      "source": "case_source/README.md §4; case_source/data/lots.csv",
+      "limitation": "Календарная дата запуска и многолетний горизонт не заданы; это не NPV-модель"
+    },
+    {
+      "id": "A03",
+      "topic": "roadmap_horizon_months",
+      "value": 12,
+      "status": "TEAM_PROPOSAL",
+      "reason": "План пилота и переноса опыта, не горизонт организаторов",
+      "resolve_by": "Предложенный горизонт сохранён; владельцы ресурсов/сезонов и условия переноса в management.roadmap",
+      "unit": "месяц"
+    },
+    {
+      "id": "A04",
+      "topic": "t_rep_definition",
+      "value": null,
+      "status": "UNKNOWN",
+      "label": "заданный безразмерный индекс кейса t_rep",
+      "limitation": "Не срок окупаемости. Использовать исходные значения, простое среднее и порог 0.63 без собственной расшифровки",
+      "resolve_by": "Только разъяснение организаторов; неопределённость видна в документах"
+    },
+    {
+      "id": "A05",
+      "topic": "index_methodologies",
+      "value": null,
+      "status": "UNKNOWN",
+      "fields": [
+        "readiness_1_5",
+        "resilience_1_5",
+        "scale_1_5"
+      ],
+      "limitation": "Шкалы 1–5 исходные; методика и равенство интервалов не доказаны. MCDA рассматривает их как допущение, проверяется чувствительностью"
+    },
+    {
+      "id": "A06",
+      "topic": "legal_names_of_modes",
+      "value": null,
+      "status": "UNKNOWN_IN_SOURCE",
+      "proposal_ref": "management.json#/access_proposals",
+      "limitation": "A/B/C в источнике — коэффициенты и public_core, не утверждённые юридические конструкции; A/B/C не научная классификация благ, она зависит от исключаемости/соперничества конкретного продукта и организации доступа"
+    },
+    {
+      "id": "A07",
+      "topic": "entities_and_regions",
+      "value": null,
+      "status": "UNKNOWN",
+      "limitation": "В материалах только архетипы и проектные типы организаций; ни одна организация не заявлена стороной реального договора"
+    },
+    {
+      "id": "A08",
+      "topic": "funding_policy",
+      "value": "Адресное покрытие C0 и положительного OPEX-gap каждого выбранного лота; межлотовые трансферты выключены",
+      "status": "TEAM_PROPOSAL",
+      "limitation": "Не гарантированное бюджетное обязательство. Anchor учитывается один раз. Дополнительное покрытие не добавляется к каноническому CASH/KCASH",
+      "resolve_by": "В management.services заданы ведущие плательщики и условные суммы из пересчитанного ResultBundle; согласие до обязательств"
+    },
+    {
+      "id": "A09",
+      "topic": "payment_timing",
+      "value": "C0 по этапам приёмки до эксплуатации; регулярные платежи за принятый сервис; адресный резерв до начала эксплуатации",
+      "status": "TEAM_PROPOSAL",
+      "limitation": "Доли авансов, задержки, сезонность, оборотный капитал неизвестны; годовой баланс не доказывает кассовую ликвидность"
+    },
+    {
+      "id": "A10",
+      "topic": "stress_revision_time",
+      "value": "До необратимых обязательств",
+      "status": "TEAM_PROPOSAL",
+      "limitation": "Для уже действующего портфеля переходные затраты/остаточные обязательства не заданы; смена состава не возвращает C0"
+    },
+    {
+      "id": "A11",
+      "topic": "kpi_baselines_and_targets",
+      "value": null,
+      "status": "UNKNOWN_UNTIL_PILOT",
+      "proposal_ref": "management.json#/services",
+      "limitation": "Все направления улучшения плановые; проценты эффекта и достигнутые KPI не заявляются",
+      "resolve_by": "Владельцы KPI утверждают протокол/baseline/цели на этапе R1; при недостаточной выборке продлевают наблюдение"
+    },
+    {
+      "id": "A12",
+      "topic": "licenses_quality_sla",
+      "value": null,
+      "status": "UNVERIFIED_FOR_LOCAL_SERVICE",
+      "limitation": "Первичные источники показывают применимость технологий, но не обеспечивают закупку, местное покрытие или SLA; местная зрелость, реальный спрос и квалифицированные независимые поставщики неизвестны; readiness не TRL",
+      "resolve_by": "До расширения подтвердить права, местную пригодность и независимую приёмку: измеримый результат для доказанно зрелого сервиса, ограниченный пилот для неопределённого применения; требования и условия в management.services"
+    },
+    {
+      "id": "A13",
+      "topic": "decision_preferences",
+      "value": "Предложение Architect, зафиксировано до ранжирования",
+      "status": "TEAM_PROPOSAL",
+      "source": "../reports/M0_ARCHITECT.md",
+      "proposal_ref": "decision.json",
+      "limitation": "Не веса жюри, не оценка в рублях, не независимые по смыслу критерии"
+    },
+    {
+      "id": "A14",
+      "topic": "source_boundary",
+      "value": "S1–S6 v1.1 из allowlisted локального ZIP",
+      "status": "ACCEPTED_M3_SOURCE_BASELINE",
+      "limitation": "Notebook не выполнялся; verify_case.py отсутствует; независимая проверка M3 принята PASS_WITH_RISKS, обязательных недостатков нет"
+    },
+    {
+      "id": "A15",
+      "topic": "numeric_canonical_scope",
+      "value": "Налоги, долг, проценты, остаточная стоимость, синергии и предотвращённый ущерб дополнительно не моделируются",
+      "status": "SOURCE_LIMITATION",
+      "limitation": "Операционный баланс не прибыль. SSA не увеличивает расчётную устойчивость иных лотов; индекс scale не означает готовность локального внедрения"
+    }
+  ]
+}

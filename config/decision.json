@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1-draft",
+  "stage": "M0",
+  "status": "PREDECLARED_METHOD_ONLY; NO_RANKING_OR_SELECTION",
+  "team_name": null,
+  "selection": null,
+  "alternatives": [],
+  "ranking": null,
+  "method": "Weighted MCDA",
+  "method_implementation_stage": "M3",
+  "strategy_thesis": "Связать общественно полезные сервисы с проверяемыми действиями пользователей и адресным финансированием; сначала обязательная допустимость, затем общественная ценность, исполнимость затрат и устойчивость эксплуатации. Итоговый состав определяется после сопоставимого расчёта альтернатив.",
+  "provenance": {"author": "Independent Architect", "source": "reports/M0_ARCHITECT.md", "predeclared_before_ranking": true, "official_rubric_weights": false},
+  "weights": {"vpub": 0.30, "c0": 0.15, "opex": 0.10, "kcash": 0.10, "t_rep": 0.05, "readiness": 0.10, "resilience": 0.15, "scale": 0.05},
+  "field_mapping": {"vpub": "vpub_mrub_per_year", "c0": "c0_mrub", "opex": "opex_mrub_per_year", "kcash": "kcash", "t_rep": "t_rep", "readiness": "readiness_1_5", "resilience": "resilience_1_5", "scale": "scale_1_5"},
+  "directions": {"vpub": "maximize", "c0": "minimize", "opex": "minimize", "kcash": "maximize", "t_rep": "maximize", "readiness": "maximize", "resilience": "maximize", "scale": "maximize"},
+  "normalization": {"reference_population": "all BASE-feasible canonical A/B/C portfolios for these source hashes", "population_id": null, "bounds": null, "same_scale_in_stress": true, "constant_criterion_contribution": 0},
+  "tie_break": ["unrounded_score_descending", "c0_mrub_ascending", "lexicographic_sorted_lot_id_mode_id"],
+  "sensitivity": {"criteria": ["vpub", "c0"], "multipliers": [0.8, 1.2], "renormalize_all_weights": true, "status": "NOT_RUN"},
+  "equal_weight_profile": {"vpub": 0.125, "c0": 0.125, "opex": 0.125, "kcash": 0.125, "t_rep": 0.125, "readiness": 0.125, "resilience": 0.125, "scale": 0.125},
+  "custom_mode_enabled": false,
+  "custom_mode": null,
+  "limitations": ["OPEX и KCASH частично повторяют финансовый акцент", "Денежные показатели могут коррелировать", "Равенство интервалов индексов не установлено", "Баллом нельзя компенсировать нарушение обязательных ограничений или отсутствие условия реализации"]
+}
