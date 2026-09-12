@@ -1,14 +1,19 @@
 /** C0 × VPUB projection of the shortlist. Two of eight criteria only: the plot never
  *  draws a frontier and never claims dominance. Positions come from server metrics;
- *  the budget rules are the real BASE/STRESS caps. */
+ *  the budget rules are the real BASE/STRESS caps.
+ *  Colour semantics: accent = preferred, ring = comparison column, amber = within 5 % of
+ *  the active cap, red = not admissible in the active scenario, grey = the rest. */
 import { useState } from 'react'
 import { format } from './presentation'
+import { composition } from './decision'
+import { Tip } from './ui'
 import type { Candidate } from './decision'
 import type { Scenario } from './types'
 
 type Bounds = Record<string, { min: number; max: number }>
-const PAD = { left: 62, right: 18, top: 18, bottom: 44 }
-const W = 520, H = 360
+const PAD = { left: 58, right: 16, top: 16, bottom: 40 }
+const W = 520, H = 300
+const NEAR_CAP = 0.05
 
 export function TradeoffPlot({ shortlist, extras, bounds, referenceSize, leaderId, viewedId, comparedIds, appliedId, scenario, caps, onView }: {
   shortlist: Candidate[]; extras: Candidate[]; bounds: Bounds; referenceSize: number; leaderId: string; viewedId: string | null
@@ -32,12 +37,21 @@ export function TradeoffPlot({ shortlist, extras, bounds, referenceSize, leaderI
   const leader = points.find(row => row.portfolio_id === leaderId)
   const better = leader ? points.filter(row => row.portfolio_id !== leaderId
     && row.metrics.c0_mrub <= leader.metrics.c0_mrub && row.metrics.vpub_mrub_per_year >= leader.metrics.vpub_mrub_per_year) : []
+  const hovered = points.find(row => row.portfolio_id === viewedId)
+
+  /** Budget state of one candidate under the scenario the user is looking at. */
+  const budget = (row: Candidate) => {
+    const margin = row.scenarios[scenario].c0_margin
+    if (margin < 0) return 'invalid'
+    return margin <= caps[scenario] * NEAR_CAP ? 'near-cap' : ''
+  }
 
   return <figure className="plot">
     <div className="plot-controls" role="group" aria-label="Масштаб проекции">
       <button type="button" aria-pressed={!zoom} onClick={() => setZoom(false)}>Весь диапазон допустимых</button>
       <button type="button" aria-pressed={zoom} onClick={() => setZoom(true)}>Приблизить шортлист</button>
     </div>
+    <div className="plot-frame">
     <svg viewBox={`0 0 ${W} ${H}`} className="plot-svg" role="img"
       aria-label={`Проекция шортлиста: ось X — C0 от ${format(c0.min)} до ${format(c0.max)} млн руб., ось Y — VPUB от ${format(vpub.min)} до ${format(vpub.max)} синтетических млн руб./год. Показаны ${points.length} вариантов. Полные значения — в таблице ниже.`}>
       <rect className="plot-envelope" x={Math.max(x(c0.min), 0)} y={Math.max(y(vpub.max), 0)}
@@ -60,9 +74,11 @@ export function TradeoffPlot({ shortlist, extras, bounds, referenceSize, leaderI
       {points.map(row => {
         const compared = comparedIds.includes(row.portfolio_id)
         const state = row.portfolio_id === leaderId ? 'leader' : compared ? 'compared' : 'plain'
-        return <g key={row.portfolio_id} className={`plot-point ${state} ${viewedId === row.portfolio_id ? 'viewed' : ''}`}
+        return <g key={row.portfolio_id} className={`plot-point ${state} ${budget(row)} ${viewedId === row.portfolio_id ? 'viewed' : ''}`}
           onMouseEnter={() => onView(row.portfolio_id)} onMouseLeave={() => onView(null)}>
-          <circle cx={x(row.metrics.c0_mrub)} cy={y(row.metrics.vpub_mrub_per_year)} r={state === 'leader' ? 7 : compared ? 6 : 4.5} />
+          <circle cx={x(row.metrics.c0_mrub)} cy={y(row.metrics.vpub_mrub_per_year)} r={state === 'leader' ? 7 : compared ? 6 : 4.5}>
+            <title>{`${composition(row.selection)} · место ${row.rank} · C0 ${format(row.metrics.c0_mrub)} · VPUB ${format(row.metrics.vpub_mrub_per_year)}`}</title>
+          </circle>
           {state === 'leader' && <circle className="plot-halo" cx={x(row.metrics.c0_mrub)} cy={y(row.metrics.vpub_mrub_per_year)} r={13} />}
         </g>
       })}
@@ -74,16 +90,33 @@ export function TradeoffPlot({ shortlist, extras, bounds, referenceSize, leaderI
       <text className="plot-axis-title" x={PAD.left + (W - PAD.left - PAD.right) / 2} y={H - 6} textAnchor="middle">C0 · млн руб. при запуске →</text>
       <text className="plot-axis-title" x={-(PAD.top + (H - PAD.top - PAD.bottom) / 2)} y={14} transform="rotate(-90)" textAnchor="middle">VPUB · синтет. млн руб./год →</text>
     </svg>
+    {hovered && <div className="plot-tooltip" aria-hidden="true"
+      style={{ left: `${(x(hovered.metrics.c0_mrub) / W) * 100}%`, top: `${(y(hovered.metrics.vpub_mrub_per_year) / H) * 100}%` }}>
+      <b>{composition(hovered.selection)}</b>
+      <dl>
+        <dt>Место</dt><dd>{hovered.rank}</dd>
+        <dt>Score</dt><dd>{format(hovered.score, 4)}</dd>
+        <dt>C0</dt><dd>{format(hovered.metrics.c0_mrub)}</dd>
+        <dt>VPUB</dt><dd>{format(hovered.metrics.vpub_mrub_per_year)}</dd>
+        <dt>STRESS</dt><dd className={hovered.scenarios.STRESS.status === 'PASS' ? 'tone-pass' : 'tone-fail'}>{hovered.scenarios.STRESS.status}</dd>
+      </dl>
+    </div>}
+    </div>
     <figcaption>
-      <p><b>Эта проекция показывает два критерия из восьми.</b> {zoom
-        ? `Оси приближены к значениям ${points.length} показанных вариантов; серый прямоугольник — та часть диапазона всех ${format(referenceSize)} допустимых BASE-составов, которая попала в кадр.`
-        : `Прямоугольник — диапазон значений всех ${format(referenceSize)} допустимых BASE-составов по этим двум осям, а не граница множества.`} Линия Парето не строится: положение слева-сверху не означает превосходство по остальным шести критериям.</p>
-      {leader && <p className="muted">Показаны {shortlist.length} вариантов шортлиста{extras.length > 0 ? ` и ${extras.length} из матрицы сравнения` : ''}. Среди них {better.length === 0 ? 'ни один не имеет одновременно меньший C0 и большую VPUB' : `${better.length} имеют и меньший C0, и большую VPUB`}. Проверьте остальные критерии в таблице — ранг считается по всем восьми.</p>}
+      <p className="meta">Две оси из восьми критериев. Линия Парето не строится.
+        <Tip label="О графике">
+          {zoom ? `Оси приближены к ${points.length} показанным вариантам.`
+            : `Прямоугольник — диапазон значений всех ${format(referenceSize)} допустимых BASE-составов.`}
+          {' '}Положение слева-сверху не означает превосходство по остальным шести критериям.
+          {leader && ` Из ${shortlist.length} вариантов шортлиста${extras.length > 0 ? ` и ${extras.length} из сравнения` : ''} ${better.length === 0 ? 'ни один не дешевле и ценнее одновременно' : `${better.length} дешевле и ценнее одновременно`}.`}
+        </Tip>
+      </p>
       <ul className="plot-legend">
-        <li><i className="key-leader" />предпочтительный при текущих весах</li>
-        <li><i className="key-compared" />столбец матрицы сравнения</li>
+        <li><i className="key-leader" />рекомендация</li>
+        <li><i className="key-compared" />в сравнении</li>
         <li><i className="key-plain" />шортлист</li>
-        <li><i className="key-applied" />открыт в конструкторе</li>
+        <li><i className="key-near" />запас до лимита меньше 5 %</li>
+        <li><i className="key-applied" />в конструкторе</li>
         <li><i className="key-cap" />лимит C0 {scenario}</li>
       </ul>
     </figcaption>

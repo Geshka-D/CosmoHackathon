@@ -125,6 +125,12 @@ def create_app(repository: CaseRepository | None = None) -> FastAPI:
         value = await read_input(request)
         return json_response(await run_in_threadpool(passport, value, repository))
 
+    @app.post("/api/research-math")
+    async def research_math_endpoint(request: Request):
+        from .research_math import research_math
+        value = await read_input(request)
+        return json_response(await run_in_threadpool(research_math, value, repository))
+
     @app.get("/api/implementation")
     def implementation_endpoint():
         result = build_management(repository)

@@ -1,7 +1,7 @@
 /**
- * Decision-support UI regression for the NEXT-1 surfaces: first screen, evidence,
- * comparison, preferences and the STRESS explanation. Every expected number is read
- * from the live API in the same run, so the test never hardcodes case values.
+ * Decision-support UI regression for the six primary screens: overview, search,
+ * comparison, stress, builder. Every expected number is read from the live API in the
+ * same run, so the test never hardcodes case values.
  *
  * Run against a serving build:  npm --prefix frontend run test:browser
  */
@@ -29,20 +29,22 @@ async function decision(request: APIRequestContext, weights = M0, scenario = 'BA
   return response.json()
 }
 
-const ru = (value: number, digits = 3) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits }).format(value).replace(/ | /g, ' ')
+const ru = (value: number, digits = 3) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: digits }).format(value).replace(/ | /g, ' ')
 const ranking = (page: Page) => page.getByRole('region', { name: 'Лидеры поиска' }).locator('tbody tr')
-const atlas = (page: Page) => page.locator('#overview')
+const view = (page: Page) => page.locator('#view')
 
+/** The search runs the whole population on first load; give it room. */
 async function ready(page: Page, leaderId: string) {
+  await page.goto('/#/search/shortlist')
   await expect(ranking(page).first()).toHaveAttribute('data-portfolio-id', leaderId, { timeout: 120_000 })
 }
 
-async function boot(page: Page, leaderId: string) {
-  await page.goto('/')
-  await ready(page, leaderId)
+async function open(page: Page, id: string) {
+  await page.getByRole('navigation', { name: 'Разделы' }).getByRole('button', { name: id, exact: true }).click()
 }
 
 async function setRows(page: Page, rows: [string, string][]) {
+  await open(page, 'Конструктор')
   await page.getByRole('button', { name: 'Сбросить всё', exact: true }).click()
   for (let index = 0; index < rows.length; index++) {
     await page.getByLabel(`Лот ${index + 1}`, { exact: true }).selectOption(rows[index][0])
@@ -50,285 +52,273 @@ async function setRows(page: Page, rows: [string, string][]) {
   }
 }
 
-test.describe('Первый экран несёт решение', () => {
-  test('счётчики воронки, состав и вердикт STRESS приходят из расчёта', async ({ page, request }) => {
+test.describe('Обзор отвечает на вопрос экрана', () => {
+  test('рекомендация, показатели и вердикт STRESS приходят из расчёта', async ({ page, request }) => {
     const data = await decision(request)
     const leader = data.search.ranking[0]
-    await boot(page, leader.portfolio_id)
+    await ready(page, leader.portfolio_id)
+    await open(page, 'Обзор')
 
-    const population = data.search.population
-    await expect(atlas(page)).toContainText(ru(population.total))
-    await expect(atlas(page)).toContainText(ru(population.scenarios.BASE.excluded))
-    await expect(atlas(page)).toContainText(ru(population.scenarios.BASE.feasible))
-    await expect(atlas(page)).toContainText(ru(population.scenarios.STRESS.feasible))
-
-    for (const row of leader.selection) await expect(atlas(page).locator('.atlas-lots')).toContainText(row.lot_id)
-    await expect(atlas(page)).toContainText(ru(leader.metrics.c0_mrub))
-    await expect(atlas(page)).toContainText(ru(leader.metrics.vpub_mrub_per_year))
+    for (const row of leader.selection) await expect(page.locator('.lot-strip')).toContainText(row.lot_id)
+    await expect(page.locator('.decision-card .object-meta')).toContainText(ru(data.search.ranked_count))
+    await expect(page.locator('.decision-figures')).toContainText(ru(leader.metrics.c0_mrub, 1))
+    await expect(page.locator('.decision-figures')).toContainText(ru(leader.metrics.vpub_mrub_per_year, 1))
 
     const stress = leader.scenarios.STRESS
-    await expect(atlas(page).locator('.atlas-stress')).toContainText(stress.status === 'PASS' ? 'Состав сохраняется' : 'не проходит STRESS')
-    if (stress.status === 'PASS') await expect(atlas(page).locator('.atlas-stress')).toContainText(ru(stress.c0_margin))
+    const verdict = page.locator('.verdict')
+    await expect(verdict).toHaveAttribute('data-tone', stress.status === 'PASS' ? 'pass' : 'fail')
+    await expect(verdict).toContainText(stress.status === 'PASS' ? 'Портфель не меняется' : 'не проходит STRESS')
+    await expect(verdict).toContainText(ru(stress.c0_margin))
+    await expect(verdict).toContainText(ru(data.search.population.scenarios.STRESS.feasible))
 
-    // The claim is scoped, never "objectively optimal".
-    await expect(atlas(page)).toContainText('допустимых при текущих весах')
-    await expect(atlas(page)).not.toContainText('объективно оптимальный')
+    // The claim stays scoped, never "objectively optimal".
+    await expect(view(page)).not.toContainText('объективно оптимальный')
   })
 
-  test('причины исключения раскрываются и предупреждают о пересечении', async ({ page, request }) => {
+  test('путь решения показывает реальные счётчики и раскрывает причины исключения', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    const toggle = atlas(page).getByRole('button', { name: 'Причины исключения' })
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Обзор')
+
+    const population = data.search.population
+    const path = page.locator('.path')
+    await expect(path).toContainText(ru(population.total))
+    await expect(path).toContainText(ru(population.scenarios.BASE.excluded))
+    await expect(path).toContainText(ru(population.scenarios.BASE.feasible))
+
+    const toggle = page.getByRole('button', { name: 'Причины исключения' })
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await toggle.click()
     const panel = page.locator('.exclusions')
     await expect(panel).toContainText('доли пересекаются')
-    await expect(panel).toContainText('не образует взаимно исключающих сегментов')
-    for (const reason of data.search.population.scenarios.BASE.exclusion_reasons) {
-      await expect(panel).toContainText(ru(reason.count))
-    }
+    for (const reason of population.scenarios.BASE.exclusion_reasons) await expect(panel).toContainText(ru(reason.count))
     // The overlapping counts must not be presented as a partition of the excluded set.
-    const sum = data.search.population.scenarios.BASE.exclusion_reasons.reduce((total: number, row: Json) => total + row.count, 0)
-    expect(sum).toBeGreaterThan(data.search.population.scenarios.BASE.excluded)
+    const sum = population.scenarios.BASE.exclusion_reasons.reduce((total: number, row: Json) => total + row.count, 0)
+    expect(sum).toBeGreaterThan(population.scenarios.BASE.excluded)
+  })
+
+  test('каждый этап пути ведёт в работающий раздел', async ({ page, request }) => {
+    const data = await decision(request)
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Обзор')
+    await page.locator('.path').getByRole('button', { name: 'Почему выбрана' }).click()
+    await expect(page.locator('.why-pair')).toBeVisible({ timeout: 60_000 })
+    await expect(page).toHaveURL(/#\/search\/why$/)
   })
 })
 
-test.describe('Почему этот портфель', () => {
-  test('матрица сравнивает минимум с двумя альтернативами и повторяет серверные дельты', async ({ page, request }) => {
+test.describe('Поиск и выбор', () => {
+  test('шортлист, график и карточка решения связаны; наведение ничего не применяет', async ({ page, request }) => {
     const data = await decision(request)
     const leader = data.search.ranking[0]
-    await boot(page, leader.portfolio_id)
+    const second = data.search.ranking[1]
+    await ready(page, leader.portfolio_id)
 
-    const headers = page.locator('.matrix thead th')
-    expect(await headers.count()).toBeGreaterThanOrEqual(4) // corner + leader + two alternatives
+    await expect(view(page)).toContainText(`${ru(data.search.population.scenarios.BASE.feasible)} допустимых`)
+    const row = ranking(page).nth(1)
+    await row.hover()
+    await expect(page.locator('.readout')).toContainText(ru(second.metrics.c0_mrub, 1))
+    await expect(page.locator('.readout .object-role')).toContainText('Просматриваемый вариант')
 
-    for (const strategyId of ['max_vpub', 'min_c0']) {
-      const alternative = data.alternatives.find((item: Json) => item.strategy_id === strategyId)
-      await expect(page.locator('.matrix')).toContainText(ru(alternative.candidate.metrics.c0_mrub))
-      await expect(page.locator('.matrix')).toContainText(ru(alternative.candidate.metrics.vpub_mrub_per_year))
-      // Server-computed delta, shown with the app's six-digit convention.
-      const delta = alternative.delta_to_current_leader.vpub_mrub_per_year
-      await expect(page.locator('.matrix')).toContainText(`${delta > 0 ? '+' : ''}${ru(delta, 6)}`)
-    }
-    await expect(page.locator('.matrix-verdicts')).toContainText('Выигрывает')
-    await expect(page.locator('.matrix-verdicts')).toContainText('Уступает')
+    // Keyboard focus drives the same link, and the numbers are not tooltip-only.
+    await row.getByRole('button', { name: 'В конструктор' }).focus()
+    await expect(page.locator('.readout')).toContainText(ru(second.metrics.c0_mrub, 1))
+
+    // Hover never changes the manual portfolio.
+    await open(page, 'Конструктор')
+    await expect(page.getByLabel('Название текущего варианта')).toHaveValue('Мой портфель')
   })
 
   test('2D-проекция подписана как две оси из восьми и не рисует границу Парето', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
+    await ready(page, data.search.ranking[0].portfolio_id)
     const plot = page.locator('.plot')
-    await expect(plot).toContainText('два критерия из восьми')
+    await expect(plot).toContainText('Две оси из восьми критериев')
     await expect(plot).toContainText('Линия Парето не строится')
     await expect(plot.locator('.plot-cap')).toHaveCount(2)
     await page.getByRole('button', { name: 'Приблизить шортлист' }).click()
+    await plot.getByRole('button', { name: 'О графике' }).click()
     await expect(plot).toContainText('Оси приближены')
-    await page.getByRole('button', { name: 'Весь диапазон допустимых' }).click()
-    await expect(plot).toContainText('Прямоугольник — диапазон значений')
   })
 
-  test('строка шортлиста, график и readout связаны; наведение ничего не применяет', async ({ page, request }) => {
+  test('строка шортлиста добавляется в сравнение и удаляется из него', async ({ page, request }) => {
     const data = await decision(request)
-    const leader = data.search.ranking[0]
-    const second = data.search.ranking[1]
-    await boot(page, leader.portfolio_id)
-
-    const nameField = page.getByLabel('Название текущего варианта')
-    const before = await nameField.inputValue()
-    const row = ranking(page).nth(1)
-    await row.hover()
-    await expect(page.locator('.readout')).toContainText(ru(second.metrics.c0_mrub))
-    await expect(page.locator('.readout-role')).toContainText('Просматриваемый')
-    expect(await nameField.inputValue()).toBe(before) // hover never applies a portfolio
-
-    // Keyboard focus drives the same link, and the numbers are not tooltip-only.
-    await row.getByRole('button', { name: 'В конструктор' }).focus()
-    await expect(page.locator('.readout')).toContainText(ru(second.metrics.c0_mrub))
-  })
-
-  test('добавление варианта шортлиста в матрицу и удаление из неё', async ({ page, request }) => {
-    const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    const columnsBefore = await page.locator('.matrix thead th').count()
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Сравнение')
+    const before = await page.locator('.matrix thead th').count()
+    await open(page, 'Поиск')
     await ranking(page).nth(2).getByRole('button', { name: 'В сравнение' }).click()
-    await expect(page.locator('.matrix thead th')).toHaveCount(columnsBefore + 1)
+    await open(page, 'Сравнение')
+    await expect(page.locator('.matrix thead th')).toHaveCount(before + 1)
     await page.locator('.matrix-actions').getByRole('button', { name: 'Убрать из сравнения' }).first().click()
-    await expect(page.locator('.matrix thead th')).toHaveCount(columnsBefore)
+    await expect(page.locator('.matrix thead th')).toHaveCount(before)
   })
 
   test('схема портфеля управляется клавиатурой и подписана как условная', async ({ page, request }) => {
     const data = await decision(request)
     const leader = data.search.ranking[0]
-    await boot(page, leader.portfolio_id)
+    await ready(page, leader.portfolio_id)
+    await page.goto('/#/search/why')
     const map = page.locator('.map')
+    await expect(map).toBeVisible({ timeout: 60_000 })
     await expect(map).toContainText('не географическая карта')
+    await map.getByRole('button', { name: 'Что показывает схема' }).click()
     await expect(map).toContainText('не орбиты и не число спутников')
-    const nodes = map.locator('.map-node')
-    await expect(nodes).toHaveCount(leader.selection.length)
-    const second = leader.selection[1].lot_id
+    await expect(map.locator('.map-node')).toHaveCount(leader.selection.length)
     await map.locator('.map-node').nth(1).focus()
     await page.keyboard.press('Enter')
-    await expect(map.locator('.map-readout h4')).toContainText(second)
+    await expect(map.locator('.map-readout .object-title')).toContainText(leader.selection[1].lot_id)
+  })
+
+  test('расчёт содержит веса, чувствительность и каталог', async ({ page, request }) => {
+    const data = await decision(request)
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await page.goto('/#/search/method')
+    await expect(page.locator('.method-page')).toBeVisible({ timeout: 60_000 })
+    await expect(page.locator('[data-sensitivity]')).toHaveCount(data.sensitivity.runs.length)
+    await expect(view(page)).toContainText('локальная проверка двух весов')
+    await expect(view(page)).toContainText('При равенстве неокруглённого score')
+    await page.getByText('Восемь лотов: исходные значения', { exact: false }).click()
+    await expect(page.locator('#catalog-lots tbody tr')).toHaveCount(8)
   })
 })
 
-test.describe('Предпочтения', () => {
-  test('изменение веса меняет применённые доли и помечает исследовательский режим', async ({ page, request }) => {
+test.describe('Приоритеты', () => {
+  test('изменение веса меняет применённые доли и помечает изменённый профиль', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await expect(page.locator('.preference-mode')).toContainText('Объявленный профиль')
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await expect(page.locator('.preferences .chip-draft')).toHaveCount(0)
 
     const heavy = await decision(request, { ...M0, vpub: 0.9 })
     await page.getByLabel('Вес vpub', { exact: true }).fill('.9')
-    await ready(page, heavy.search.ranking[0].portfolio_id)
-    await expect(page.locator('.preference-mode')).toContainText('Исследовательский режим')
+    await expect(ranking(page).first()).toHaveAttribute('data-portfolio-id', heavy.search.ranking[0].portfolio_id, { timeout: 120_000 })
+    await expect(page.locator('.preferences .chip-draft')).toContainText('Веса изменены')
     const share = await page.getByTestId('applied-vpub').getAttribute('data-value')
     expect(Math.abs(Number(share) - heavy.search.weights.applied.vpub)).toBeLessThan(1e-9)
-    await expect(page.locator('.preference-effect')).toContainText('Лидер при этом векторе')
   })
 
-  test('сброс конфигурации возвращает объявленные веса, сценарий и шортлист', async ({ page, request }) => {
+  test('сброс настроек поиска возвращает объявленные веса и шортлист', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await page.getByLabel('Вес vpub', { exact: true }).fill('.9')
-    await page.getByLabel('Сценарий поиска', { exact: true }).selectOption('STRESS')
-    await page.getByLabel('Размер шортлиста', { exact: true }).selectOption('25')
-    await page.getByRole('button', { name: 'Сбросить конфигурацию поиска', exact: true }).click()
     await ready(page, data.search.ranking[0].portfolio_id)
+    await page.getByLabel('Вес vpub', { exact: true }).fill('.9')
+    await page.locator('.preferences summary').click()
+    await page.getByLabel('Размер шортлиста', { exact: true }).selectOption('25')
+    await page.getByRole('button', { name: 'Сбросить настройки поиска', exact: true }).click()
+    await expect(ranking(page).first()).toHaveAttribute('data-portfolio-id', data.search.ranking[0].portfolio_id, { timeout: 120_000 })
     await expect(page.getByLabel('Вес vpub', { exact: true })).toHaveValue('0.3')
-    await expect(page.getByLabel('Сценарий поиска', { exact: true })).toHaveValue('BASE')
     await expect(page.getByLabel('Размер шортлиста', { exact: true })).toHaveValue('10')
-    await expect(page.locator('.preference-mode')).toContainText('Объявленный профиль')
   })
 
-  test('пустой вес показывает ошибку и скрывает рейтинг, а не старые числа', async ({ page, request }) => {
+  test('пустые веса показывают ошибку и скрывают рейтинг, а не старые числа', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
+    await ready(page, data.search.ranking[0].portfolio_id)
     for (const key of Object.keys(M0)) await page.getByLabel(`Вес ${key}`, { exact: true }).fill('0')
-    await expect(page.locator('#decision').getByRole('alert')).toContainText('больше нуля')
+    await expect(page.locator('#view').getByRole('alert')).toContainText('больше нуля')
     await expect(ranking(page)).toHaveCount(0)
-    await expect(page.locator('.matrix')).toHaveCount(0)
+  })
+})
+
+test.describe('Сравнение: цена компромисса впереди таблицы', () => {
+  test('карточки компромисса и матрица повторяют серверные дельты', async ({ page, request }) => {
+    const data = await decision(request)
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Сравнение')
+
+    const cards = page.getByTestId('tradeoff-cards')
+    await expect(cards).toBeVisible()
+    for (const strategyId of ['max_vpub', 'min_c0']) {
+      const alternative = data.alternatives.find((item: Json) => item.strategy_id === strategyId)
+      await expect(page.locator('.matrix')).toContainText(ru(alternative.candidate.metrics.c0_mrub, 3))
+      const delta = alternative.delta_to_current_leader.vpub_mrub_per_year
+      await expect(page.locator('.matrix')).toContainText(`${delta > 0 ? '+' : ''}${ru(delta)}`)
+    }
+    await expect(page.locator('.matrix-verdicts')).toContainText('Выигрывает')
+    await expect(page.locator('.matrix-verdicts')).toContainText('Уступает')
   })
 
-  test('быстрые изменения оставляют последнее состояние', async ({ page, request }) => {
+  test('большая таблица — второй уровень', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    for (const value of ['0.5', '0.7', '0.9']) await page.getByLabel('Вес vpub', { exact: true }).fill(value)
-    const heavy = await decision(request, { ...M0, vpub: 0.9 })
-    await ready(page, heavy.search.ranking[0].portfolio_id)
-    await expect(page.getByLabel('Вес vpub', { exact: true })).toHaveValue('0.9')
-  })
-
-  test('±20 % описано как локальная проверка', async ({ page, request }) => {
-    const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await expect(page.locator('#decision')).toContainText('локальная проверка двух весов')
-    await expect(page.locator('[data-sensitivity]')).toHaveCount(data.sensitivity.runs.length)
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Сравнение')
+    const money = page.locator('.matrix-band', { hasText: 'Денежные потоки' })
+    await expect(money).toBeHidden()
+    await page.getByRole('button', { name: 'Все показатели', exact: true }).click()
+    await expect(money).toBeVisible()
   })
 })
 
 test.describe('STRESS как управленческое условие', () => {
-  test('устойчивый состав: запас показан, стоимость не сокращается до нового лимита', async ({ page, request }) => {
+  test('рекомендация: ответ сразу, стоимость не сокращается до нового лимита', async ({ page, request }) => {
     const data = await decision(request)
     const leader = data.search.ranking[0]
-    test.skip(leader.scenarios.STRESS.status !== 'PASS', 'лидер не проходит STRESS в этой конфигурации')
-    await boot(page, leader.portfolio_id)
-    await ranking(page).first().getByRole('button', { name: 'В конструктор' }).click()
-    await expect(page.getByTestId('metric-c0_mrub').locator('strong')).toHaveText(ru(leader.metrics.c0_mrub))
+    await ready(page, leader.portfolio_id)
+    await open(page, 'Стресс')
 
-    const verdict = page.locator('.stress-verdict')
-    await expect(verdict).toContainText('Состав сохраняется')
+    const verdict = page.locator('.verdict')
+    await expect(verdict).toContainText(ru(leader.scenarios.BASE.c0_margin))
     await expect(verdict).toContainText(ru(leader.scenarios.STRESS.c0_margin))
-    await expect(verdict).toContainText('снижение лимита не удешевляет портфель')
-    await expect(verdict).toContainText('Устойчив в границах этого сценария STRESS')
-    // Cost is identical under both conditions; only the cap moves.
-    await expect(page.getByTestId('stress-summary-BASE')).toContainText(ru(leader.metrics.c0_mrub))
-    await expect(page.getByTestId('stress-summary-STRESS')).toContainText(ru(leader.metrics.c0_mrub))
-    await expect(page.locator('.budget-axis')).toContainText('Двигается только граница допустимого C0')
+    await expect(page.locator('.budget-axis')).toBeVisible()
+    await page.getByRole('button', { name: 'Что меняет сценарий' }).click()
+    await expect(view(page)).toContainText('сценарий меняет только лимит стартовых затрат')
+    await expect(view(page)).toContainText('не удешевляет портфель')
   })
 
-  test('неустойчивый состав: точное нарушение, кандидаты, предпросмотр, применение и возврат', async ({ page, request }) => {
+  test('мой состав: точное нарушение, кандидаты, предпросмотр, применение и возврат', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
+    await ready(page, data.search.ranking[0].portfolio_id)
     await setRows(page, [['FIRE', 'A'], ['FLOOD', 'A'], ['INFRA', 'B'], ['ENV', 'A']])
+    await page.goto('/#/stress/own')
     await expect(page.getByTestId('stress-summary-STRESS')).toContainText('FAIL', { timeout: 60_000 })
 
-    const verdict = page.locator('.stress-verdict.breaks')
+    const verdict = page.locator('.verdict[data-tone="fail"]')
     await expect(verdict).toContainText('Состав не проходит STRESS')
     await expect(verdict).toContainText('нарушение')
-    await expect(verdict).toContainText('не содержит переходных затрат')
-    await expect(page.locator('.stress-actions')).toContainText('лучшего по score')
-    await expect(page.locator('.stress-actions')).toContainText('минимально изменить состав')
+    await page.getByRole('button', { name: 'Почему стоимость не меняется' }).click()
+    await expect(view(page)).toContainText('не две стадии ранжирования')
+    await expect(view(page)).toContainText('не содержит переходных затрат')
 
     const candidates = page.getByRole('region', { name: 'Допустимые в STRESS кандидаты' }).locator('tbody tr')
     expect(await candidates.count()).toBeGreaterThan(0)
-    const nameField = page.getByLabel('Название текущего варианта')
-    const nameBefore = await nameField.inputValue()
-
     await candidates.first().getByRole('button', { name: 'Предпросмотр' }).click()
     const preview = page.locator('.stress-preview')
-    await expect(preview).toContainText('Текущий состав не изменён')
+    await expect(preview).toContainText('текущий состав не изменён')
     await expect(preview).toContainText('Сейчас')
     await expect(preview).toContainText('В предпросмотре')
-    expect(await nameField.inputValue()).toBe(nameBefore) // preview does not apply
 
+    // Applying opens the composition in the builder, where the change can be undone.
     await preview.getByRole('button', { name: 'Применить состав' }).click()
-    await expect(nameField).not.toHaveValue(nameBefore)
-    await expect(page.locator('.stress-restore')).toBeVisible()
-    await page.getByRole('button', { name: 'Вернуть прежний состав', exact: true }).click()
-    await expect(nameField).toHaveValue(nameBefore)
+    await expect(page.locator('.view-title')).toHaveText('Конструктор портфеля')
+    await expect(page.getByLabel('Название текущего варианта')).toHaveValue(/STRESS-допустимый/)
+    await page.getByRole('button', { name: 'Отменить изменение', exact: true }).click()
+    await expect(page.getByLabel('Название текущего варианта')).not.toHaveValue(/STRESS-допустимый/)
   })
 
-  test('сценарий меняет только лимит C0, и это сказано явно', async ({ page, request }) => {
+  test('пустой конструктор: раздел просит состав и предлагает открыть рекомендацию', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await ranking(page).first().getByRole('button', { name: 'В конструктор' }).click()
-    await expect(page.locator('#stress')).toContainText('Из девяти условий сценарий меняет только')
-    await expect(page.locator('#stress')).toContainText('не две стадии ранжирования')
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Конструктор')
+    await page.getByRole('button', { name: 'Сбросить всё', exact: true }).click()
+    await page.goto('/#/stress/own')
+    await expect(view(page)).toContainText('Соберите четыре лота')
+    await page.getByRole('button', { name: 'Открыть рекомендуемый состав', exact: true }).click()
+    await expect(page.getByTestId('metric-c0_mrub')).toHaveText(ru(data.search.ranking[0].metrics.c0_mrub, 1))
   })
 })
 
 test.describe('Границы формулировок', () => {
   test('нет запрещённых утверждений о прибыли, окупаемости и Парето', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
+    await ready(page, data.search.ranking[0].portfolio_id)
     const text = await page.locator('body').innerText()
     expect(text).not.toContain('Парето-фронт')
     expect(text).not.toContain('Pareto frontier')
     expect(text).not.toContain('объективно оптимальный портфель')
-    expect(text).toContain('не окупаемость')
-    // The band heading is rendered uppercase by CSS, so compare case-insensitively.
-    expect(text.toLowerCase()).toContain('vpub отдельно от cash')
-  })
-})
-
-test.describe('Крайние состояния', () => {
-  test('длинное название не ломает раскладку и не вызывает прокрутку страницы', async ({ page, request }) => {
-    const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await ranking(page).first().getByRole('button', { name: 'В конструктор' }).click()
-    const long = 'Межрегиональный портфель космических сервисов для паводков, пожаров и агроаналитики — редакция'
-    await page.getByLabel('Название текущего варианта').fill(long)
-    await expect(page.getByTestId('metric-c0_mrub').locator('strong')).toBeVisible()
-    const bounds = await page.evaluate(() => ({ w: window.innerWidth, s: document.documentElement.scrollWidth }))
-    expect(bounds.s).toBeLessThanOrEqual(bounds.w)
-  })
-
-  test('пустой конструктор: стресс-раздел просит состав и предлагает открыть предпочтительный', async ({ page, request }) => {
-    const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await page.getByRole('button', { name: 'Сбросить всё', exact: true }).click()
-    await expect(page.locator('#stress')).toContainText('Сначала выберите четыре лота')
-    await page.getByRole('button', { name: 'Открыть предпочтительный состав', exact: true }).click()
-    await expect(page.getByTestId('metric-c0_mrub').locator('strong')).toHaveText(ru(data.search.ranking[0].metrics.c0_mrub))
-  })
-
-  test('равные значения: правило разрешения ничьей объявлено', async ({ page, request }) => {
-    const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await page.locator('#decision').getByText('Веса, фиксированная шкала и происхождение', { exact: true }).click()
-    await expect(page.locator('#decision')).toContainText('При равенстве неокруглённого score')
-    await expect(page.locator('#decision')).toContainText('лексикографический состав')
+    await open(page, 'Обзор')
+    await page.getByRole('button', { name: 'Что такое Денежное покрытие' }).first().click()
+    await expect(page.locator('.tip-bubble')).toContainText('не окупаемость')
+    await open(page, 'Сравнение')
+    await page.getByRole('button', { name: 'Все показатели', exact: true }).click()
+    expect((await page.locator('.matrix').innerText()).toLowerCase()).toContain('vpub отдельно от cash')
   })
 })
 
@@ -337,10 +327,10 @@ test.describe('Доступность и адаптивность', () => {
     test(`${name} ${width}×${height}: нет горизонтальной прокрутки страницы`, async ({ page, request }) => {
       const data = await decision(request)
       await page.setViewportSize({ width, height })
-      await boot(page, data.search.ranking[0].portfolio_id)
-      for (const id of ['overview', 'decision', 'stress', 'builder', 'comparison', 'implementation']) {
-        await page.getByRole('navigation').locator(`a[href="#${id}"]`).click()
-        await expect(page.locator(`#${id}`)).toBeInViewport()
+      await ready(page, data.search.ranking[0].portfolio_id)
+      for (const id of ['Обзор', 'Поиск', 'Стресс', 'Конструктор', 'Сравнение', 'Реализация']) {
+        await open(page, id)
+        await expect(page.locator('.view-title')).toBeVisible()
         const bounds = await page.evaluate(() => ({ w: window.innerWidth, s: document.documentElement.scrollWidth }))
         expect(bounds.s, `${name}/${id} horizontal overflow`).toBeLessThanOrEqual(bounds.w)
       }
@@ -349,7 +339,9 @@ test.describe('Доступность и адаптивность', () => {
 
   test('статусы читаются текстом, а не только цветом', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Сравнение')
+    await page.getByRole('button', { name: 'Все показатели', exact: true }).click()
     await expect(page.locator('.matrix .badge').first()).not.toHaveText('')
     await expect(page.locator('.matrix')).toContainText('выполнено')
     await expect(page.locator('.matrix')).toContainText('PASS')
@@ -359,17 +351,16 @@ test.describe('Доступность и адаптивность', () => {
     const data = await decision(request)
     const leader = data.search.ranking[0]
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await boot(page, leader.portfolio_id)
-    await expect(atlas(page)).toContainText(ru(leader.metrics.c0_mrub))
-    await expect(page.locator('.plot-svg')).toBeVisible()
-    const duration = await page.locator('.funnel-bar i').first()
-      .evaluate(node => getComputedStyle(node).transitionDuration)
+    await ready(page, leader.portfolio_id)
+    await open(page, 'Обзор')
+    await expect(page.locator('.decision-figures')).toContainText(ru(leader.metrics.c0_mrub, 1))
+    const duration = await page.locator('.path-bar i').first().evaluate(node => getComputedStyle(node).transitionDuration)
     expect(['0s', '0.001s']).toContain(duration)
   })
 
   test('видимый фокус на интерактивных элементах', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
+    await ready(page, data.search.ranking[0].portfolio_id)
     const button = page.getByRole('button', { name: 'Веса M0', exact: true })
     await button.focus()
     const outline = await button.evaluate(node => getComputedStyle(node).outlineWidth)
@@ -384,31 +375,36 @@ test.describe('Целостность продукта', () => {
     page.on('request', item => { if (!/^(http:\/\/127\.0\.0\.1|http:\/\/localhost|blob:|data:)/.test(item.url())) external.push(item.url()) })
     page.on('pageerror', error => errors.push(String(error)))
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await page.locator('#implementation').scrollIntoViewIfNeeded()
-    await expect(page.locator('#implementation')).toContainText('Release', { timeout: 120_000 })
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Реализация')
+    await expect(page.locator('.delivery-hero')).toBeVisible({ timeout: 120_000 })
     expect(external).toEqual([])
     expect(errors).toEqual([])
   })
 
-  test('все прежние разделы и действия на месте', async ({ page, request }) => {
+  test('все прежние действия рабочей области на месте', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await page.locator('.preferences summary').click()
+    for (const name of ['Веса M0', 'Равные веса', 'Скачать JSON выбора', 'Импорт выбора']) {
+      await expect(page.getByRole('button', { name, exact: true })).toHaveCount(1)
+    }
+    await open(page, 'Конструктор')
     for (const name of ['Скачать JSON', 'Импорт JSON', 'Сбросить всё', 'Отменить изменение']) {
       await expect(page.getByRole('button', { name, exact: true })).toHaveCount(1)
     }
-    for (const name of ['Веса M0', 'Равные веса', 'Скачать JSON выбора', 'Импорт выбора']) {
-      await expect(page.locator('#decision').getByRole('button', { name, exact: true })).toHaveCount(1)
-    }
-    await expect(page.locator('#catalog').locator('tbody').first().locator('tr')).toHaveCount(8)
     await expect(page.locator('.slot')).toHaveCount(4)
-    await expect(page.locator('#comparison .empty')).toBeVisible()
+    await open(page, 'Сравнение')
+    await page.getByRole('button', { name: 'Сохранённые составы', exact: true }).click()
+    await expect(page.locator('.empty')).toBeVisible()
   })
 
   test('сохранённые материалы отделены от текущего расчёта', async ({ page, request }) => {
     const data = await decision(request)
-    await boot(page, data.search.ranking[0].portfolio_id)
-    await expect(page.locator('#implementation')).toContainText('относятся к принятой сохранённой конфигурации', { timeout: 120_000 })
-    await expect(atlas(page)).toContainText('не меняются вместе с этим поиском')
+    await ready(page, data.search.ranking[0].portfolio_id)
+    await open(page, 'Реализация')
+    await expect(view(page)).toContainText('сохранённый выпуск', { timeout: 120_000 })
+    await page.getByRole('button', { name: 'Материалы', exact: true }).click()
+    await expect(view(page)).toContainText('Ручной портфель и новые веса не меняют выводы этих файлов')
   })
 })

@@ -3,7 +3,8 @@
  *  field of the saved case (lots.csv, access_modes.csv, service-design M0); there are no
  *  coordinates, orbits, satellites, coverage or telemetry anywhere in this drawing. */
 import { useState } from 'react'
-import { format, lotNames } from './presentation'
+import { format, lotNames, money } from './presentation'
+import { Disclosure, Fact, Facts, Tip } from './ui'
 import type { Candidate, ServiceContext } from './decision'
 import type { Catalog, Lot } from './types'
 
@@ -79,7 +80,10 @@ export function ServiceMap({ candidate, services, catalog }: { candidate: Candid
         <text className="map-level" x={iso(0, 2, 1).x - 12} y={iso(0, 2, 1).y} textAnchor="end">Кто платит</text>
         <text className="map-level" x={iso(0, 2, 0).x - 12} y={iso(0, 2, 0).y} textAnchor="end">Территории</text>
       </svg>
-      <p className="map-caveat">Условная схема связей по сохранённым данным кейса. Это не географическая карта, не зона покрытия, не орбиты и не число спутников. «Территория» — территориальный архетип лота из lots.csv; федеральный лот не добавляет архетип в счёт.</p>
+      <p className="map-caveat">Схема связей, не географическая карта.
+        <Tip label="Что показывает схема">Условная схема по сохранённым данным кейса: это не зона покрытия, не орбиты и не число спутников.
+          «Территория» — территориальный архетип лота из lots.csv; федеральный лот не добавляет архетип в счёт.</Tip>
+      </p>
     </div>
 
     <div className="map-readout" aria-live="polite">
@@ -88,20 +92,27 @@ export function ServiceMap({ candidate, services, catalog }: { candidate: Candid
           className={selected === row.lot_id ? 'on' : ''} onClick={() => setSelected(row.lot_id)}>{row.lot_id} {row.mode_id}</button>)}
       </div>
       {active && <>
-        <h4>{active.lot_id} · {lotNames[active.lot_id]}</h4>
-        <p className="map-service">{active.lot?.service}</p>
-        <dl className="map-facts">
-          <div><dt>Режим доступа</dt><dd>{active.mode_id} · {active.core ? 'засчитывается в общественное ядро' : 'вне общественного ядра'}</dd></div>
-          <div><dt>Территориальный архетип</dt><dd>{String(active.lot?.territorial_archetype ?? '—')}{active.lot?.federal ? ' · федеральный, вне территориального счёта' : ''}</dd></div>
-          <div><dt>Группы возможностей</dt><dd>{String(active.lot?.capability_groups ?? '—')}</dd></div>
-          <div><dt>C0 лота · базовое значение</dt><dd>{format(active.lot?.c0_mrub)} млн руб.</dd></div>
-          <div><dt>OPEX лота · базовое значение</dt><dd>{format(active.lot?.opex_mrub_per_year)} млн руб./год</dd></div>
-        </dl>
+        <p className="object-role">{active.core ? 'Общественное ядро' : 'Платный слой'}</p>
+        <p className="object-title">{active.lot_id} {active.mode_id}</p>
+        <p className="object-meta">{lotNames[active.lot_id]}</p>
+        <Facts>
+          <Fact label="Режим доступа" value={`${active.mode_id} · ${active.core ? 'засчитывается в общественное ядро' : 'вне общественного ядра'}`} />
+          <Fact label="Территория" value={`${String(active.lot?.territorial_archetype ?? '—')}${active.lot?.federal ? ' · федеральный' : ''}`} />
+          <Fact label="Возможности" value={String(active.lot?.capability_groups ?? '—')} />
+          <Fact label="Стартовые затраты лота" code="C0" value={money(active.lot?.c0_mrub)} />
+          <Fact label="Эксплуатация лота" code="OPEX" value={money(active.lot?.opex_mrub_per_year, 'млн ₽/год')} />
+        </Facts>
         {active.service && <>
-          <p className="map-proposal"><b>Предложение команды по задаче:</b> {active.service.task_proposal}</p>
-          <p className="muted">Коэффициенты режима {active.mode_id}: {Object.entries(active.service.mode_coefficients).map(([key, value]) => `${key} = ${format(value)}`).join('; ')}. Режим меняет C0, OPEX, VPUB, якорный и коммерческий CASH одновременно; A не означает бесплатный сервис.</p>
+          <Disclosure summary="О задаче сервиса">
+            <p>{active.service.task_proposal}</p>
+            <p className="meta">Предложение команды из service-design M0, а не утверждённый договор.</p>
+          </Disclosure>
+          <Disclosure summary="Технические параметры режима">
+            <Facts className="facts-tight">{Object.entries(active.service.mode_coefficients).map(([key, value]) =>
+              <Fact key={key} label={key} value={format(value)} />)}</Facts>
+            <p className="meta">Режим меняет C0, OPEX, VPUB, якорный и коммерческий CASH одновременно; A не означает бесплатный сервис.</p>
+          </Disclosure>
         </>}
-        <p className="muted">Договорные условия, плательщики и приёмка для утверждённого выпуска — в разделе <a href="#implementation">«Реализация сохранённого решения»</a>. Для произвольного ручного состава они не заданы.</p>
       </>}
     </div>
   </div>
