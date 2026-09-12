@@ -5,6 +5,7 @@ import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { format, lotNames } from './presentation'
 import { composition } from './decision'
+import { DecisionCorridor } from './Experience'
 import type { DecisionState } from './useDecision'
 import type { Catalog, Scenario } from './types'
 
@@ -50,6 +51,7 @@ export function DecisionAtlas({ decision, catalog, appliedId }: { decision: Deci
             : busy ? 'Проверяем JSON выбора…' : 'Python перебирает все составы и пересчитывает рейтинг…'}</p>
         {error && <p className="atlas-error">{error}</p>}
       </div> : <>
+        <DecisionCorridor decision={result} />
         <div className="atlas-headline">
           <div className="atlas-choice">
             <p className="atlas-kicker" id="atlas-title">Предпочтительный состав при заданных приоритетах</p>
@@ -62,7 +64,7 @@ export function DecisionAtlas({ decision, catalog, appliedId }: { decision: Deci
                 <span className="atlas-lot-core">{core ? 'общественное ядро' : 'вне ядра'}</span>
               </li>
             })}</ol>
-            <p className="atlas-caveat">Предпочтительный при заданных приоритетах, не единственный объективно оптимальный. Score — представление взвешенного индекса на фиксированной шкале, не процент прибыли или вероятности.</p>
+            <p className="atlas-caveat"><b>Первый из {format(result.search.ranked_count)} допустимых при текущих весах.</b> Наибольший вклад: {drivers.map(([key]) => criterionNames[key] || key).join(', ')}. Score — взвешенный индекс, не процент прибыли или вероятности.</p>
           </div>
           <dl className="atlas-figures">
             <div><dt>C0 · запуск</dt><dd>{format(leader!.metrics.c0_mrub)}<small>млн руб.</small></dd></div>

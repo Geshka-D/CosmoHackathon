@@ -9,15 +9,18 @@ import type { Column } from './ComparisonMatrix'
 import { TradeoffPlot } from './TradeoffPlot'
 import { ServiceMap } from './ServiceMap'
 import { PreferencePanel } from './PreferencePanel'
+import { WhyNarrative } from './Experience'
+import type { Intelligence } from './intelligence'
 import type { DecisionState } from './useDecision'
 import type { Catalog, RequestInput } from './types'
 
 const DEFAULT_STRATEGIES = ['max_vpub', 'min_c0']
 const MAX_COLUMNS = 5
 
-export function DecisionPanel({ catalog, currentRequest, appliedId, decision, onLoad }: {
+export function DecisionPanel({ catalog, currentRequest, appliedId, decision, onLoad, evidence }: {
   catalog: Catalog; currentRequest: RequestInput; appliedId: string | null; decision: DecisionState
   onLoad: (name: string, request: RequestInput) => void
+  evidence?: Intelligence
 }) {
   const [viewed, setViewed] = useState<string | null>(null)
   const [extra, setExtra] = useState<string[]>([])
@@ -75,6 +78,8 @@ export function DecisionPanel({ catalog, currentRequest, appliedId, decision, on
             <span>{columns.length} столбца в сравнении · {result.search.ranking.length} в шортлисте</span></div>
           <p>Сравнение идёт на одной конфигурации и одной фиксированной шкале. Разницы объявленных стратегий рассчитаны сервером относительно текущего лидера.</p>
           {tie && <p className="notice">Первые две строки имеют равный неокруглённый score. Порядок разрешён объявленным правилом: меньший C0, затем лексикографический состав.</p>}
+
+          <WhyNarrative value={evidence} catalog={catalog} />
 
           <div className="why-grid">
             <TradeoffPlot shortlist={result.search.ranking}

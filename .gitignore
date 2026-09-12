@@ -6,3 +6,4 @@ out/
 .npm-cache/
 .env
 .env.*
+/reports/evidence/browser-artifacts/

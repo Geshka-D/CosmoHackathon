@@ -7,6 +7,9 @@ import { DecisionAtlas } from './DecisionAtlas'
 import { ImplementationPanel } from './ImplementationPanel'
 import { IntelligencePanel } from './IntelligencePanel'
 import { StressPanel } from './StressPanel'
+import { Mission, PitchControls, OfficialShock, FinanceFlow, ImplementationConditions, DecisionBrief } from './Experience'
+import { useOfficialEvidence, usePassport } from './useEvidence'
+import type { LabSnapshot } from './useEvidence'
 import { useDecision } from './useDecision'
 import { portfolioId } from './decision'
 import { format, lotNames, metricNames } from './presentation'
@@ -33,6 +36,9 @@ export default function App() {
   const [boot, setBoot] = useState(0)
   const [retry, setRetry] = useState(0)
   const [history, setHistory] = useState<Workspace[]>([])
+  const [pitch, setPitch] = useState<number | null>(null)
+  const [lab, setLab] = useState<LabSnapshot>()
+  const returnScroll = useRef(0)
   const revision = useRef(0)
   const autoSave = useRef(false)
   const rejectedStorage = useRef<string | undefined>(undefined)
@@ -42,6 +48,18 @@ export default function App() {
   const computed = response?.key === serialized ? response.value.computed : undefined
   const decision = useDecision(catalog)
   const appliedId = workspace && workspace.current.request.selection.length === 4 ? portfolioId(workspace.current.request.selection) : null
+  const leader = decision.result?.search.ranking[0]
+  const leaderRequest = leader && catalog ? { schema_version: catalog.schema_version, case_id: catalog.case_id, case_version: catalog.case_version, selection: leader.selection } : undefined
+  const researchSubject = workspace?.current.request.selection.length === 4 ? workspace.current.request : leaderRequest
+  const evidence = useOfficialEvidence(decision.result?.configuration.request, leaderRequest)
+  const validLab = lab?.subjectKey === JSON.stringify(researchSubject) && lab?.searchKey === JSON.stringify(decision.result?.configuration.request)
+  const labActive = !!lab?.active || lab?.context === 'RESEARCH'
+  const briefEvidence = labActive ? (validLab ? lab?.result : undefined) : evidence.data
+  const finance = usePassport(briefEvidence?.recommendation?.request)
+  function exitPitch() {
+    setPitch(null)
+    requestAnimationFrame(() => { window.scrollTo({ top: returnScroll.current, behavior: 'instant' }); document.getElementById('enter-pitch')?.focus({ preventScroll: true }) })
+  }
 
   function persist(value: Envelope) {
     try {
@@ -146,7 +164,8 @@ export default function App() {
   function load(name: string, request: Workspace['current']['request']) {
     if (!workspace) return
     change({ ...workspace, current: { name, request: structuredClone(request) } })
-    document.getElementById('builder')?.scrollIntoView({ block: 'start' })
+    if (pitch !== null) setPitch(null)
+    requestAnimationFrame(() => document.getElementById('builder')?.scrollIntoView({ block: 'start' }))
   }
 
   async function importFile(file: File) {
@@ -207,7 +226,7 @@ export default function App() {
         : workspace.alternatives.some(item => item.name.trim().toLocaleLowerCase() === workspace.current.name.trim().toLocaleLowerCase()) ? 'Задайте другое название варианта.'
           : !workspace.current.name.trim() ? 'Введите название варианта.' : ''
 
-  return <>
+  return <div className={pitch === null ? 'product' : 'product pitch-active'} data-pitch-step={pitch ?? undefined}>
     <a className="skip-link" href="#overview">Перейти к решению</a>
     <header className="masthead">
       <div className="masthead-block">
@@ -215,15 +234,17 @@ export default function App() {
         <h1>Портфель космических сервисов</h1>
       </div>
       <p className="masthead-story">потребность → пользователь → сервис → действие → плановый эффект → общественная ценность → кто платит → почему этот портфель → STRESS</p>
-      <span className="edition">Кейс v1.1 · локальный расчёт</span>
+      <button id="enter-pitch" className="pitch-launch" disabled={!decision.result} onClick={() => { returnScroll.current = window.scrollY; setPitch(0) }}>Начать защиту · Pitch Mode</button>
     </header>
     <nav aria-label="Разделы">
-      <a href="#overview">Обзор</a><a href="#decision">Поиск и выбор</a><a href="#stress">Стресс-сценарий</a>
-      <a href="#builder">Конструктор</a><a href="#comparison">Сравнение</a><a href="#implementation">Реализация и материалы</a>
+      <a href="#overview">Обзор</a><a href="#decision">Поиск и выбор</a><a href="#official-shock">BASE → STRESS</a><a href="#intelligence">Budget Lab / Recovery</a><a href="#financing">Финансирование</a><a href="#decision-brief">Brief</a>
+      <a href="#builder">Конструктор</a><a href="#stress">STRESS своего состава</a><a href="#comparison">Сравнение</a><a href="#implementation">Реализация и материалы</a>
     </nav>
+    {pitch !== null && <PitchControls step={pitch} onStep={setPitch} onExit={exitPitch} />}
     <main>
       {!workspace || !catalog ? <section className="panel"><h2>Загрузка кейса</h2>{error ? <div role="alert" className="error"><p>{error}</p><button onClick={() => setBoot(value => value + 1)}>Повторить загрузку</button></div> : <p role="status">Проверяем локальные источники и сохранённые настройки…</p>}</section> : <>
         <DecisionAtlas decision={decision} catalog={catalog} appliedId={appliedId} />
+        <Mission total={decision.result?.search.population.total} />
 
         <section className="toolbar panel" aria-label="Сохранение и восстановление">
           <div><b>Настройки портфеля</b><p className="muted" role="status">{storageMessage || 'Изменения сохраняются в этом браузере после успешного пересчёта.'}</p>{rejectedStorage.current !== undefined && <button className="quiet" onClick={() => download(rejectedStorage.current!, 'kosmos-storage-backup.json')}>Скачать прежнюю запись</button>}</div>
@@ -232,12 +253,45 @@ export default function App() {
             <button className="quiet" disabled={history.length === 0 || busy} onClick={() => { const prior = history[history.length - 1]; setHistory(previous => previous.slice(0, -1)); change(prior, false) }}>Отменить изменение</button>
             <button className="quiet" disabled={busy} onClick={() => change(blank(catalog))}>Сбросить всё</button></div>
         </section>
-        {notice && <p className="notice" role="status">{notice}</p>}
+        {notice && <p id="workspace-notice" className="notice" role="status">{notice} <a href="#comparison">Открыть сохранённые варианты</a></p>}
         {busy && <p className="notice" role="status">Проверяем файл и пересчитываем настройки…</p>}
         {error && <div className="error" role="alert"><b>Расчёт не подтверждён</b><p>{error}</p><button onClick={() => { revision.current += 1; setError(''); setResponse(undefined); setRetry(value => value + 1) }}>Пересчитать текущие настройки</button></div>}
 
-        <DecisionPanel catalog={catalog} currentRequest={workspace.current.request} appliedId={appliedId} decision={decision} onLoad={load} />
+        <DecisionPanel catalog={catalog} currentRequest={workspace.current.request} appliedId={appliedId} decision={decision} onLoad={load} evidence={evidence.data} />
+        {evidence.error && <p className="error" role="alert">{evidence.error} <button onClick={evidence.retry}>Повторить объяснение</button></p>}
+        <OfficialShock decision={decision.result} />
 
+        <IntelligencePanel catalog={catalog} current={researchSubject || workspace.current.request} search={decision.result?.configuration.request}
+          subjectLabel={appliedId ? 'Текущий состав конструктора' : 'Рекомендация · конструктор не изменён'}
+          initialBreakpoint={appliedId ? (typeof computed?.current.metrics.c0_mrub === 'number' ? computed.current.metrics.c0_mrub : undefined) : leader?.metrics.c0_mrub}
+          onSnapshot={setLab} onApply={load} onCompare={(name, request) => {
+          const alternatives = [...workspace.alternatives]
+          for (const item of [{ name: appliedId ? workspace.current.name : 'Исходная рекомендация', request: researchSubject || workspace.current.request }, { name, request }]) {
+            if (!alternatives.some(a => signature(a.request.selection) === signature(item.request.selection))) {
+              if (alternatives.length >= 3) {
+                setNotice('Сравнение заполнено: удалите один из трёх вариантов и повторите добавление.')
+                if (pitch !== null) setPitch(null)
+                requestAnimationFrame(() => document.getElementById('workspace-notice')?.scrollIntoView({ block: 'start' }))
+                return
+              }
+              const originalName = item.name.trim() || 'Портфель'
+              let uniqueName = originalName.slice(0, 76)
+              let suffix = 1
+              while (alternatives.some(a => a.name.toLocaleLowerCase() === uniqueName.toLocaleLowerCase())) uniqueName = `${originalName.slice(0, 76)} ${suffix++}`
+              alternatives.push({ ...structuredClone(item), name: uniqueName, alternative_id: `alt-${crypto.randomUUID()}` })
+            }
+          }
+          change({ ...workspace, alternatives })
+          if (pitch !== null) setPitch(null)
+          requestAnimationFrame(() => document.getElementById('comparison')?.scrollIntoView({ block: 'start' }))
+        }} />
+        <section id="financing" className="panel">
+          <p className="eyebrow">Financing & responsibility / рекомендация текущего контекста</p><h2>Кто платит — и что получает общество?</h2>
+          <p>{briefEvidence ? `${briefEvidence.context} / ${briefEvidence.active_scenario}` : 'Ожидаем актуальный расчёт'} · {briefEvidence?.recommendation?.candidate.selection.map(r => `${r.lot_id} ${r.mode_id}`).join(' · ')}</p>
+          {finance.data ? <FinanceFlow value={finance.data} /> : finance.error ? <p role="alert">{finance.error} <button onClick={finance.retry}>Повторить финансовую цепочку</button></p> : briefEvidence?.status === 'NO_SOLUTION' ? <p className="notice">Нет допустимой рекомендации для финансирования. Измените условия или выполните Reset DSS.</p> : <p role="status">Проверяем расчёт и активный паспорт рекомендации…</p>}
+        </section>
+        <ImplementationConditions candidate={briefEvidence?.recommendation?.candidate} />
+        <DecisionBrief value={briefEvidence} catalog={catalog} pendingContext={labActive && !briefEvidence ? lab?.context : undefined} />
         <StressPanel result={computed?.current} pending={!computed && !error} onApply={() => change({ ...workspace, scenario: 'STRESS' })}
           disabled={busy || !computed} decision={decision} currentRequest={workspace.current.request}
           currentName={workspace.current.name} onLoad={load} />
@@ -269,21 +323,6 @@ export default function App() {
         <section className="panel results" aria-label="Результаты расчёта" aria-busy={!computed && !error}>
           {computed ? <ResultPanel result={computed.current} scenario={workspace.scenario} /> : <><h2>Цена и ограничения</h2><p role="status">{error ? 'Результаты скрыты до успешного пересчёта текущих настроек.' : busy ? 'Ожидаем завершения операции с JSON…' : 'Пересчитываем текущий ввод на сервере…'}</p></>}
         </section>
-        <IntelligencePanel catalog={catalog} current={workspace.current.request} search={decision.result?.configuration.request} onCompare={(name, request) => {
-          const alternatives = [...workspace.alternatives]
-          for (const item of [{ name: workspace.current.name, request: workspace.current.request }, { name, request }]) {
-            if (!alternatives.some(a => signature(a.request.selection) === signature(item.request.selection))) {
-              if (alternatives.length >= 3) { setNotice('Сравнение заполнено: удалите один из трёх вариантов и повторите добавление.'); return }
-              const originalName = item.name.trim() || 'Портфель'
-              let uniqueName = originalName.slice(0, 76)
-              let suffix = 1
-              while (alternatives.some(a => a.name.toLocaleLowerCase() === uniqueName.toLocaleLowerCase())) uniqueName = `${originalName.slice(0, 76)} ${suffix++}`
-              alternatives.push({ ...structuredClone(item), name: uniqueName, alternative_id: `alt-${crypto.randomUUID()}` })
-            }
-          }
-          change({ ...workspace, alternatives })
-          document.getElementById('comparison')?.scrollIntoView({ block: 'start' })
-        }} />
         <Comparison workspace={workspace} computed={computed} onLoad={index => { const item = workspace.alternatives[index]; load(item.name, item.request) }} onRemove={index => change({ ...workspace, alternatives: workspace.alternatives.filter((_, i) => i !== index) })} />
         <ImplementationPanel currentRequest={workspace.current.request} onLoad={load} />
         <section id="catalog" className="panel">
@@ -299,5 +338,5 @@ export default function App() {
       </>}
     </main>
     <footer>Синтетические данные кейса · C0 при запуске + один год эксплуатации · ручной аналитический инструмент</footer>
-  </>
+  </div>
 }

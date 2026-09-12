@@ -106,10 +106,13 @@ export function ComparisonMatrix({ columns, leader, catalog, directions, scenari
           </td>)}
         </tr>)}
         <tr className="matrix-band"><th scope="row" colSpan={columns.length + 1}>Остальные жёсткие условия · факт и официальный порог</th></tr>
+        <tr><th scope="row">Число уникальных лотов<small>Ровно {catalog.constraints_common.selected_lots_exactly}</small></th>
+          {columns.map(column => <td key={column.candidate.portfolio_id} {...cellProps(column)}><b>{column.candidate.selection.length}</b><small>Отклонение от условия {column.candidate.selection.length - catalog.constraints_common.selected_lots_exactly}</small></td>)}</tr>
         {LIMITS.map(rule => <tr key={rule.id}>
           <th scope="row">{rule.label}<small>{rule.comparator} {format(catalog.constraints_common[rule.key], 6)}</small></th>
           {columns.map(column => <td key={column.candidate.portfolio_id} {...cellProps(column)} data-verdict={column.candidate.scenarios[scenario].checks?.[rule.id] === false ? 'lose' : ''}>
             <b>{format(column.candidate.metrics[rule.metric], 4)}</b>
+            <small>Запас {signed(rule.comparator === '≤' ? catalog.constraints_common[rule.key] - column.candidate.metrics[rule.metric] : column.candidate.metrics[rule.metric] - catalog.constraints_common[rule.key])}</small>
             <small className={`badge ${column.candidate.scenarios[scenario].checks?.[rule.id] === false ? 'fail' : 'pass'}`}>{column.candidate.scenarios[scenario].checks?.[rule.id] === false ? 'нарушено' : 'выполнено'}</small>
           </td>)}
         </tr>)}
